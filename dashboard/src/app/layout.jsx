@@ -65,24 +65,12 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className="flex h-screen bg-slate-50 text-slate-900 font-sans antialiased">
         <aside className="w-60 bg-slate-900 text-slate-300 flex flex-col shrink-0 select-none border-r border-slate-800">
-          <div className="px-6 py-5 border-b border-slate-800/80 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-slate-950 flex items-center justify-center p-1.5 shadow-md shadow-blue-500/10 border border-slate-800">
-              <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-                <path d="M20 6C12.268 6 6 12.268 6 20C6 27.732 12.268 34 20 34C22.5 34 24.9 33.3 26.9 32.1L33 34L31.1 28.1C32.9 25.8 34 23 34 20C34 12.268 27.732 6 20 6Z" fill="url(#sidebar_logo_grad)"/>
-                <circle cx="20" cy="20" r="5" fill="#FFFFFF"/>
-                <defs>
-                  <linearGradient id="sidebar_logo_grad" x1="6" y1="6" x2="34" y2="34" gradientUnits="userSpaceOnUse">
-                    <stop stop-color="#3B82F6"/>
-                    <stop offset="0.6" stop-color="#F97316"/>
-                    <stop offset="1" stop-color="#EF4444"/>
-                  </linearGradient>
-                </defs>
-              </svg>
+          <div className="px-6 py-6 border-b border-slate-800/80">
+            <div className="text-xl font-black text-white tracking-tight flex items-center gap-1.5">
+              <span>Warm</span>
+              <span className="text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 text-base">DM</span>
             </div>
-            <div>
-              <div className="text-sm font-bold text-white tracking-tight">WarmDM</div>
-              <div className="text-[11px] text-slate-400 font-medium">Cold DM CRM</div>
-            </div>
+            <div className="text-[11px] text-slate-400 font-medium mt-1 tracking-wide">Outreach & Cold DM CRM</div>
           </div>
           <nav className="flex-1 px-3 py-4 space-y-1">
             {NAV.map(item => (
