@@ -68,13 +68,16 @@ class IntentClassifierModel:
         intent = classes[max_idx]
         confidence = float(probs[max_idx])
 
-        # Rule heuristic override for OOO / clear keywords
-        if any(w in cleaned for w in ["out of office", "vacation", "automated reply", "auto reply", "on leave"]):
+        # Rule heuristic overrides for clear outreach keywords
+        if any(w in cleaned for w in ["out of office", "vacation", "automated reply", "auto reply", "on leave", "out of office returning"]):
             intent = "ooo"
             confidence = 0.98
-        elif any(w in cleaned for w in ["not hiring", "no open roles", "hiring freeze"]):
+        elif any(w in cleaned for w in ["not hiring", "no open roles", "hiring freeze", "no vacancy", "full at this time", "fully staffed", "no open positions", "no headcount", "team is full"]):
             intent = "not_hiring"
-            confidence = 0.95
+            confidence = 0.96
+        elif any(w in cleaned for w in ["not interested", "pass for now", "no thank you", "remove me", "no budget", "not a fit", "no bandwidth", "don't need external"]):
+            intent = "not_interested"
+            confidence = 0.94
 
         return {
             "intent": intent,

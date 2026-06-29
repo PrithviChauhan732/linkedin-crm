@@ -28,6 +28,9 @@ export default function WorkflowBuilderPage() {
   const [edges, setEdges] = useState([]);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   
+  // Sidebar Toggle State
+  const [showInspector, setShowInspector] = useState(true);
+
   // 2D Pan, Zoom & Connecting State
   const [zoom, setZoom] = useState(1.0);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -40,7 +43,7 @@ export default function WorkflowBuilderPage() {
   const [saving, setSaving] = useState(false);
 
   // ML Sample Tester State
-  const [testMessage, setTestMessage] = useState("Sure, let's chat next week!");
+  const [testMessage, setTestMessage] = useState("we are full at this time with no vacancy");
   const [testResult, setTestResult] = useState(null);
 
   // Sync loaded workflow into local state
@@ -156,20 +159,30 @@ export default function WorkflowBuilderPage() {
   }
 
   function runSampleMLTest() {
-    const text = testMessage.toLowerCase();
+    const text = testMessage.toLowerCase().strip ? testMessage.toLowerCase().strip() : testMessage.toLowerCase().trim();
     let intent = "interested";
     let conf = 0.94;
 
-    if (text.includes("not hiring") || text.includes("no open roles") || text.includes("freeze")) {
+    const notHiringKeywords = ["not hiring", "no open roles", "hiring freeze", "no vacancy", "full at this time", "fully staffed", "no open positions", "no headcount", "team is full", "full capacity"];
+    const notInterestedKeywords = ["not interested", "pass for now", "no thank you", "remove me", "no budget", "not a fit", "no bandwidth", "don't need external", "pass"];
+    const referralKeywords = ["reach out to", "contact", "speak with", "forwarding", "cto", "vp of", "coordinator"];
+    const oooKeywords = ["out of office", "vacation", "leave", "automated reply", "auto reply", "traveling"];
+    const questionKeywords = ["pricing", "rates", "cost", "how does", "what is", "case studies"];
+
+    if (notHiringKeywords.some(w => text.includes(w))) {
       intent = "not_hiring"; conf = 0.96;
-    } else if (text.includes("not interested") || text.includes("pass") || text.includes("no thanks")) {
-      intent = "not_interested"; conf = 0.92;
-    } else if (text.includes("reach out to") || text.includes("contact") || text.includes("speak with")) {
-      intent = "referral"; conf = 0.89;
-    } else if (text.includes("out of office") || text.includes("vacation") || text.includes("leave")) {
+    } else if (notInterestedKeywords.some(w => text.includes(w))) {
+      intent = "not_interested"; conf = 0.94;
+    } else if (referralKeywords.some(w => text.includes(w))) {
+      intent = "referral"; conf = 0.91;
+    } else if (oooKeywords.some(w => text.includes(w))) {
       intent = "ooo"; conf = 0.98;
-    } else if (text.includes("pricing") || text.includes("rates") || text.includes("cost") || text.includes("how")) {
-      intent = "question"; conf = 0.87;
+    } else if (questionKeywords.some(w => text.includes(w))) {
+      intent = "question"; conf = 0.88;
+    } else if (text.includes("sure") || text.includes("let's talk") || text.includes("schedule") || text.includes("interested") || text.includes("connect")) {
+      intent = "interested"; conf = 0.95;
+    } else {
+      intent = "not_interested"; conf = 0.70;
     }
 
     const branch = ML_BRANCHES.find(b => b.id === intent) || ML_BRANCHES[0];
@@ -210,7 +223,16 @@ export default function WorkflowBuilderPage() {
           <button onClick={() => addNode('ml_condition')} className="text-xs font-semibold px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-400 rounded-md transition-all">+ ML Condition</button>
           <button onClick={() => addNode('action')} className="text-xs font-semibold px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-md transition-all">+ Action Node</button>
 
-          <button onClick={saveWorkflow} disabled={saving} className="text-xs font-bold px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md shadow-sm shadow-blue-500/20 transition-all ml-2">
+          <div className="h-4 w-px bg-slate-800 mx-1" />
+
+          <button
+            onClick={() => setShowInspector(v => !v)}
+            className="text-xs font-semibold px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md transition-all"
+          >
+            {showInspector ? 'Hide Inspector ⇥' : 'Show Inspector ⇤'}
+          </button>
+
+          <button onClick={saveWorkflow} disabled={saving} className="text-xs font-bold px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md shadow-sm shadow-blue-500/20 transition-all ml-1">
             {saving ? 'Saving...' : 'Save & Activate Graph'}
           </button>
         </div>
@@ -325,107 +347,109 @@ export default function WorkflowBuilderPage() {
           </div>
         </div>
 
-        {/* Node Inspector Sidebar */}
-        <div className="w-88 border-l border-slate-800 bg-slate-900 p-6 flex flex-col justify-between shrink-0 z-30 overflow-y-auto">
-          <div>
-            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Node Inspector & ML Tester</h2>
-            
-            {selectedNode ? (
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">Node Label</label>
-                  <input
-                    type="text"
-                    value={selectedNode.label}
-                    onChange={e => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, label: e.target.value } : n))}
-                    className="w-full text-xs font-semibold bg-slate-950 border border-slate-800 rounded-md p-2.5 text-white outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                {/* ML Classifier Details & Real-Time Tester */}
-                {selectedNode.type === 'ml_condition' && (
-                  <div className="space-y-4 pt-3 border-t border-slate-800">
-                    <label className="block text-xs font-bold text-purple-400 uppercase tracking-wider">ML Output Branches</label>
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                      {ML_BRANCHES.map(b => (
-                        <div key={b.id} className={`p-2.5 rounded-md border text-xs ${b.color}`}>
-                          <div className="flex items-center justify-between font-semibold">
-                            <span>{b.label}</span>
-                            <span className="font-mono text-[10px]">{b.tag}</span>
-                          </div>
-                          <div className="text-[10px] opacity-75 mt-0.5">{b.desc}</div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Interactive Sample Tester Box */}
-                    <div className="p-3.5 bg-slate-950 border border-purple-500/20 rounded-lg space-y-2.5">
-                      <label className="block text-[11px] font-semibold text-purple-300">Test ML Sample Outcome</label>
-                      <textarea
-                        rows={2}
-                        value={testMessage}
-                        onChange={e => setTestMessage(e.target.value)}
-                        className="w-full text-xs p-2 bg-slate-900 border border-slate-800 rounded-md text-slate-200 outline-none focus:border-purple-500 resize-none"
-                        placeholder="Type a sample prospect reply..."
-                      />
-                      <button
-                        type="button"
-                        onClick={runSampleMLTest}
-                        className="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-md shadow-sm shadow-purple-500/20 transition-all"
-                      >
-                        Simulate ML Outcome
-                      </button>
-
-                      {testResult && (
-                        <div className="pt-2 border-t border-slate-800 text-xs">
-                          <div className="text-[10px] text-slate-400 font-medium">Predicted Branch Outcome:</div>
-                          <div className="flex items-center justify-between mt-1 font-bold text-emerald-400">
-                            <span>{testResult.label} ({testResult.tag})</span>
-                            <span className="font-mono text-[10px] text-slate-300">{Math.round(testResult.confidence * 100)}% Match</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {selectedNode.type === 'action' && (
+        {/* Collapsible Node Inspector Sidebar */}
+        {showInspector && (
+          <div className="w-88 border-l border-slate-800 bg-slate-900 p-6 flex flex-col justify-between shrink-0 z-30 overflow-y-auto">
+            <div>
+              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Node Inspector & ML Tester</h2>
+              
+              {selectedNode ? (
+                <div className="space-y-5">
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1">Action Config</label>
-                    <select
-                      value={selectedNode.config?.actionType || 'move_stage'}
-                      onChange={e => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, config: { ...n.config, actionType: e.target.value } } : n))}
+                    <label className="block text-xs text-slate-400 mb-1">Node Label</label>
+                    <input
+                      type="text"
+                      value={selectedNode.label}
+                      onChange={e => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, label: e.target.value } : n))}
                       className="w-full text-xs font-semibold bg-slate-950 border border-slate-800 rounded-md p-2.5 text-white outline-none focus:border-blue-500"
-                    >
-                      <option value="move_stage">Move to Pipeline Stage</option>
-                      <option value="add_tag">Apply Tag (#Tag)</option>
-                      <option value="send_template">Trigger Auto-Template</option>
-                    </select>
+                    />
                   </div>
-                )}
 
-                <div className="pt-4 border-t border-slate-800">
-                  <button onClick={deleteSelectedNode} className="w-full text-xs font-semibold py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-md transition-all">
-                    Delete Node (Delete Key)
-                  </button>
+                  {/* ML Classifier Details & Real-Time Tester */}
+                  {selectedNode.type === 'ml_condition' && (
+                    <div className="space-y-4 pt-3 border-t border-slate-800">
+                      <label className="block text-xs font-bold text-purple-400 uppercase tracking-wider">ML Output Branches</label>
+                      <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                        {ML_BRANCHES.map(b => (
+                          <div key={b.id} className={`p-2.5 rounded-md border text-xs ${b.color}`}>
+                            <div className="flex items-center justify-between font-semibold">
+                              <span>{b.label}</span>
+                              <span className="font-mono text-[10px]">{b.tag}</span>
+                            </div>
+                            <div className="text-[10px] opacity-75 mt-0.5">{b.desc}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Interactive Sample Tester Box */}
+                      <div className="p-3.5 bg-slate-950 border border-purple-500/20 rounded-lg space-y-2.5">
+                        <label className="block text-[11px] font-semibold text-purple-300">Test ML Sample Outcome</label>
+                        <textarea
+                          rows={2}
+                          value={testMessage}
+                          onChange={e => setTestMessage(e.target.value)}
+                          className="w-full text-xs p-2 bg-slate-900 border border-slate-800 rounded-md text-slate-200 outline-none focus:border-purple-500 resize-none"
+                          placeholder="Type a sample prospect reply..."
+                        />
+                        <button
+                          type="button"
+                          onClick={runSampleMLTest}
+                          className="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-md shadow-sm shadow-purple-500/20 transition-all"
+                        >
+                          Simulate ML Outcome
+                        </button>
+
+                        {testResult && (
+                          <div className="pt-2 border-t border-slate-800 text-xs">
+                            <div className="text-[10px] text-slate-400 font-medium">Predicted Branch Outcome:</div>
+                            <div className="flex items-center justify-between mt-1 font-bold text-emerald-400">
+                              <span>{testResult.label} ({testResult.tag})</span>
+                              <span className="font-mono text-[10px] text-slate-300">{Math.round(testResult.confidence * 100)}% Match</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedNode.type === 'action' && (
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Action Config</label>
+                      <select
+                        value={selectedNode.config?.actionType || 'move_stage'}
+                        onChange={e => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, config: { ...n.config, actionType: e.target.value } } : n))}
+                        className="w-full text-xs font-semibold bg-slate-950 border border-slate-800 rounded-md p-2.5 text-white outline-none focus:border-blue-500"
+                      >
+                        <option value="move_stage">Move to Pipeline Stage</option>
+                        <option value="add_tag">Apply Tag (#Tag)</option>
+                        <option value="send_template">Trigger Auto-Template</option>
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="pt-4 border-t border-slate-800">
+                    <button onClick={deleteSelectedNode} className="w-full text-xs font-semibold py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-md transition-all">
+                      Delete Node (Delete Key)
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="text-xs text-slate-500 italic py-8 text-center">
-                Click any node on the canvas to inspect properties or test ML outcomes
-              </div>
-            )}
-          </div>
+              ) : (
+                <div className="text-xs text-slate-500 italic py-8 text-center">
+                  Click any node on the canvas to inspect properties or test ML outcomes
+                </div>
+              )}
+            </div>
 
-          <div className="p-3 bg-slate-950 border border-slate-800/80 rounded-lg mt-4">
-            <div className="text-[11px] font-semibold text-slate-300 mb-1">Keyboard Shortcuts</div>
-            <div className="text-[10px] text-slate-400 space-y-1">
-              <div><kbd className="bg-slate-800 px-1 rounded text-white">Delete</kbd> : Delete selected node</div>
-              <div><kbd className="bg-slate-800 px-1 rounded text-white">Arrows</kbd> : Nudge node position</div>
-              <div><kbd className="bg-slate-800 px-1 rounded text-white">Esc</kbd> : Clear connection mode</div>
+            <div className="p-3 bg-slate-950 border border-slate-800/80 rounded-lg mt-4">
+              <div className="text-[11px] font-semibold text-slate-300 mb-1">Keyboard Shortcuts</div>
+              <div className="text-[10px] text-slate-400 space-y-1">
+                <div><kbd className="bg-slate-800 px-1 rounded text-white">Delete</kbd> : Delete selected node</div>
+                <div><kbd className="bg-slate-800 px-1 rounded text-white">Arrows</kbd> : Nudge node position</div>
+                <div><kbd className="bg-slate-800 px-1 rounded text-white">Esc</kbd> : Clear connection mode</div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
