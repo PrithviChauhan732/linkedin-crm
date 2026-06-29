@@ -31,8 +31,8 @@ def clean_text(text: str) -> str:
 class IntentClassifierModel:
     def __init__(self):
         self.pipeline = SkPipeline([
-            ('tfidf', TfidfVectorizer(ngram_range=(1, 2), min_df=1)),
-            ('clf', LogisticRegression(C=2.0, max_iter=200, solver='lbfgs'))
+            ('tfidf', TfidfVectorizer(ngram_range=(1, 3), sublinear_tf=True, min_df=1)),
+            ('clf', LogisticRegression(C=3.0, max_iter=300, solver='lbfgs'))
         ])
         self.is_trained = False
 

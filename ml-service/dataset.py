@@ -1,7 +1,7 @@
-# Comprehensive dataset for training cold DM intent classifier
+# Enterprise-grade training dataset for WarmDM cold outreach intent classifier
 
 TRAINING_DATA = [
-    # ── Interested ─────────────────────────────────────────────────────────────
+    # ── 1. INTERESTED (Positive / Meeting Request / Send Info) ─────────────────
     ("Sure, let's connect next week and discuss details.", "interested"),
     ("Sounds interesting! Can you send over a pitch deck or portfolio?", "interested"),
     ("I'm open to a quick 15 min call. Here is my calendar link.", "interested"),
@@ -16,8 +16,24 @@ TRAINING_DATA = [
     ("Happy to connect!", "interested"),
     ("This looks relevant. Let's set up a meeting.", "interested"),
     ("Please send over your available times for a demo.", "interested"),
+    ("Definitely interested. What is your pricing structure?", "interested"),
+    ("I've been looking for something like this. Let's chat.", "interested"),
+    ("Shoot me an email at john@company.com with more info.", "interested"),
+    ("Can you share a case study? If good let me know when you can talk.", "interested"),
+    ("Let's do a quick intro call next Tuesday.", "interested"),
+    ("Sounds promising. Do you have availability this Friday?", "interested"),
+    ("Yes, send over your booking link.", "interested"),
+    ("We are actually evaluating vendors right now, great timing.", "interested"),
+    ("I'd be interested in taking a look at a live demonstration.", "interested"),
+    ("Sure thing, send over a calendar invite.", "interested"),
+    ("Let's connect on a brief call next week.", "interested"),
+    ("I'm interested in learning more about how this works.", "interested"),
+    ("Sounds good to me, let's connect.", "interested"),
+    ("Please send your deck over to my inbox.", "interested"),
+    ("Happy to explore this further. Let's set up 15 mins.", "interested"),
+    ("Let's talk! What times work best for you?", "interested"),
 
-    # ── Not Hiring ─────────────────────────────────────────────────────────────
+    # ── 2. NOT HIRING (No Vacancy / Full Staff / Hiring Freeze) ────────────────
     ("Thanks for reaching out, but we are not hiring right now.", "not_hiring"),
     ("We don't have any open roles at the moment.", "not_hiring"),
     ("Appreciate the note, but our engineering team is full.", "not_hiring"),
@@ -31,8 +47,20 @@ TRAINING_DATA = [
     ("No headcount available for new roles.", "not_hiring"),
     ("We are currently at full capacity and not taking applications.", "not_hiring"),
     ("No job openings at present.", "not_hiring"),
+    ("We don't have any engineering vacancies open currently.", "not_hiring"),
+    ("Not looking for new talent at the moment.", "not_hiring"),
+    ("We've paused all active recruitment efforts for the year.", "not_hiring"),
+    ("Thanks for the application but all positions are filled.", "not_hiring"),
+    ("We have no open headcount for external candidates.", "not_hiring"),
+    ("Our hiring plans are on hold until Q4.", "not_hiring"),
+    ("Not hiring any new staff right now.", "not_hiring"),
+    ("We are not accepting resumes or agency candidate submissions.", "not_hiring"),
+    ("All our departments are fully staffed right now.", "not_hiring"),
+    ("Currently operating under a strict hiring freeze.", "not_hiring"),
+    ("No contractor or employee vacancies currently available.", "not_hiring"),
+    ("Appreciate you checking in, but we have zero open roles.", "not_hiring"),
 
-    # ── Not Interested ─────────────────────────────────────────────────────────
+    # ── 3. NOT INTERESTED (Pass / No Budget / Remove List) ────────────────────
     ("Thanks for the message, but we'll pass for now.", "not_interested"),
     ("Not interested at this moment. Good luck!", "not_interested"),
     ("We already have an in-house team handling this.", "not_interested"),
@@ -43,8 +71,23 @@ TRAINING_DATA = [
     ("We are not interested in agency services.", "not_interested"),
     ("No bandwidth for new initiatives.", "not_interested"),
     ("We don't need external support for this.", "not_interested"),
+    ("Thanks but we already use an existing vendor for this.", "not_interested"),
+    ("Not looking to make changes to our tech stack right now.", "not_interested"),
+    ("Unsubscribe me from your messages.", "not_interested"),
+    ("We don't have any budget allocated for this project.", "not_interested"),
+    ("Please do not contact me again.", "not_interested"),
+    ("Pass on this.", "not_interested"),
+    ("We're all set with our current provider.", "not_interested"),
+    ("Not something we are interested in exploring.", "not_interested"),
+    ("I am going to decline this opportunity.", "not_interested"),
+    ("Not relevant to our business model.", "not_interested"),
+    ("We are satisfied with our internal tools.", "not_interested"),
+    ("Thanks, but please take me off your outreach sequence.", "not_interested"),
+    ("Not interested.", "not_interested"),
+    ("We have no need for external software right now.", "not_interested"),
+    ("I'll pass on this, thank you.", "not_interested"),
 
-    # ── Referral ───────────────────────────────────────────────────────────────
+    # ── 4. REFERRAL (Wrong Person / Contact Colleague) ─────────────────────────
     ("You should reach out to Sarah, our VP of Marketing.", "referral"),
     ("I am not the right person for this. Please contact our CTO Dave.", "referral"),
     ("Forwarding your note to our recruiting coordinator.", "referral"),
@@ -52,19 +95,40 @@ TRAINING_DATA = [
     ("Try reaching out to team@company.com instead.", "referral"),
     ("Cc'ing Alex who manages our software partnerships.", "referral"),
     ("Contact our department head directly.", "referral"),
+    ("You'll want to talk to our Head of People, Jessica.", "referral"),
+    ("Not my department. Reach out to procurement.", "referral"),
+    ("I suggest messaging Mark who oversees engineering tooling.", "referral"),
+    ("Please direct all sales pitches to info@ourfirm.com.", "referral"),
+    ("I am no longer in charge of this division. Speak with Dan.", "referral"),
+    ("Connecting you with our lead architect.", "referral"),
+    ("Reach out to our talent team at careers@domain.com.", "referral"),
+    ("This would be handled by our product manager, Michael.", "referral"),
 
-    # ── Question ───────────────────────────────────────────────────────────────
+    # ── 5. QUESTION (Inquiry / Pricing / Clarification) ────────────────────────
     ("What are your pricing tiers and contract terms?", "question"),
     ("Do you support integration with Salesforce and HubSpot?", "question"),
     ("Where are your case studies or past client results?", "question"),
     ("How does your tech compare to existing market tools?", "question"),
     ("What is your turnaround time for custom implementation?", "question"),
     ("Could you clarify how pricing works?", "question"),
+    ("How much does your monthly subscription cost?", "question"),
+    ("Do you offer a free trial or proof of concept?", "question"),
+    ("Are your security compliance standards SOC2 certified?", "question"),
+    ("What features are included in the enterprise tier?", "question"),
+    ("Is this built on top of open source or proprietary models?", "question"),
+    ("Can you explain how the automated sync functions?", "question"),
+    ("What is the average ROI your existing customers see?", "question"),
+    ("Do you have documentation for API webhooks?", "question"),
 
-    # ── Out of Office (OOO) ────────────────────────────────────────────────────
+    # ── 6. OUT OF OFFICE (OOO / Vacation / Automated Reply) ───────────────────
     ("I am out of the office on vacation until July 10th.", "ooo"),
     ("Automated Reply: I will have limited access to messages.", "ooo"),
     ("On parental leave until next month. Will reply upon return.", "ooo"),
     ("Traveling for conference with delayed responses.", "ooo"),
     ("Out of office returning next week.", "ooo"),
+    ("Auto-response: Currently traveling with intermittent internet.", "ooo"),
+    ("I am away on holiday and will respond upon my return.", "ooo"),
+    ("Out of office until Monday morning.", "ooo"),
+    ("Currently out of office with no email access.", "ooo"),
+    ("I am attending an industry summit until Friday.", "ooo"),
 ]
