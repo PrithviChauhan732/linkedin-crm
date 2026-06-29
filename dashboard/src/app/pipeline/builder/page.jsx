@@ -5,17 +5,17 @@ import Link from 'next/link';
 import { fetcher, patch } from '../../../lib/api';
 
 const NODE_TYPES = {
-  trigger:      { label: 'TRIGGER', color: 'border-blue-500/60 bg-slate-900/95 text-blue-400' },
-  ml_condition: { label: 'ML CONDITION', color: 'border-purple-500/60 bg-slate-900/95 text-purple-400' },
-  action:       { label: 'ACTION', color: 'border-emerald-500/60 bg-slate-900/95 text-emerald-400' },
+  trigger:      { label: 'TRIGGER EVENT', color: 'border-blue-500/80 bg-slate-900 text-blue-400', badge: 'bg-blue-500/10 border-blue-500/30' },
+  ml_condition: { label: 'ML CLASSIFIER', color: 'border-purple-500/80 bg-slate-900 text-purple-400', badge: 'bg-purple-500/10 border-purple-500/30' },
+  action:       { label: 'ACTION NODE', color: 'border-emerald-500/80 bg-slate-900 text-emerald-400', badge: 'bg-emerald-500/10 border-emerald-500/30' },
 };
 
 const ML_BRANCHES = [
   { id: 'interested', label: 'Interested', tag: '#Interested', desc: 'Positive response / meeting request', color: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' },
   { id: 'form_request', label: 'Form Request', tag: '#FormRequest', desc: 'Vendor questionnaire or form link', color: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30' },
   { id: 'not_hiring', label: 'Not Hiring', tag: '#NotHiring', desc: 'No open roles or hiring freeze', color: 'bg-amber-500/10 text-amber-300 border-amber-500/30' },
-  { id: 'not_interested', label: 'Not Interested', tag: '#NotInterested', desc: 'Polite decline or pass', color: 'bg-rose-500/10 text-rose-300 border-rose-500/30' },
   { id: 'referral', label: 'Referral', tag: '#Referral', desc: 'Redirected to another colleague', color: 'bg-blue-500/10 text-blue-300 border-blue-500/30' },
+  { id: 'not_interested', label: 'Not Interested', tag: '#NotInterested', desc: 'Polite decline or pass', color: 'bg-rose-500/10 text-rose-300 border-rose-500/30' },
   { id: 'question', label: 'Inquiry', tag: '#Inquiry', desc: 'Pricing or service question', color: 'bg-purple-500/10 text-purple-300 border-purple-500/30' },
   { id: 'ooo', label: 'Out of Office', tag: '#OutOfOffice', desc: 'Vacation or automated reply', color: 'bg-slate-500/10 text-slate-300 border-slate-500/30' },
 ];
@@ -261,34 +261,51 @@ export default function WorkflowBuilderPage() {
           <div className="absolute inset-0 origin-top-left transition-transform duration-75 ease-out" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>
             {/* SVG Connector Wires */}
             <svg className="absolute inset-0 w-[5000px] h-[5000px] pointer-events-none z-10 overflow-visible">
+              <defs>
+                <linearGradient id="wireGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#38bdf8" />
+                  <stop offset="100%" stopColor="#818cf8" />
+                </linearGradient>
+              </defs>
+
               {edges.map(edge => {
                 const srcNode = nodes.find(n => n.id === edge.source);
                 const tgtNode = nodes.find(n => n.id === edge.target);
                 if (!srcNode || !tgtNode) return null;
 
-                let handleOffsetY = 42;
+                const nodeWidth = 240;
+                const x1 = (srcNode.position?.x || 0) + nodeWidth;
+                const x2 = tgtNode.position?.x || 0;
+                const y2 = (tgtNode.position?.y || 0) + 34; // Center of target input port
+
+                let y1 = (srcNode.position?.y || 0) + 34; // Center of standard output port
                 if (srcNode.type === 'ml_condition') {
                   const handles = ['interested', 'form_request', 'not_hiring', 'referral', 'not_interested', 'question', 'ooo'];
                   const idx = handles.indexOf(edge.sourceHandle);
-                  if (idx !== -1) handleOffsetY = 38 + idx * 22;
+                  if (idx !== -1) {
+                    y1 = (srcNode.position?.y || 0) + 88 + idx * 28; // Exact right-edge row anchor offset
+                  }
                 }
 
-                const x1 = (srcNode.position?.x || 0) + 216;
-                const y1 = (srcNode.position?.y || 0) + handleOffsetY;
-                const x2 = tgtNode.position?.x || 0;
-                const y2 = (tgtNode.position?.y || 0) + 42;
-                const dx = Math.abs(x2 - x1) * 0.5;
+                const dx = Math.min(120, Math.max(40, Math.abs(x2 - x1) * 0.4));
 
                 return (
-                  <g key={edge.id} className="cursor-pointer pointer-events-auto" onClick={() => setEdges(edges.filter(e => e.id !== edge.id))}>
-                    <path d={`M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`} fill="none" stroke="#38bdf8" strokeWidth="2.5" strokeDasharray={edge.sourceHandle === 'not_hiring' ? '4 4' : 'none'} />
-                    <circle cx={x2} cy={y2} r="4" fill="#38bdf8" />
+                  <g key={edge.id} className="cursor-pointer pointer-events-auto group" onClick={() => setEdges(edges.filter(e => e.id !== edge.id))}>
+                    <path
+                      d={`M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`}
+                      fill="none"
+                      stroke="url(#wireGradient)"
+                      strokeWidth="2.5"
+                      className="group-hover:stroke-sky-300 transition-colors"
+                      strokeDasharray={edge.sourceHandle === 'not_hiring' ? '4 4' : 'none'}
+                    />
+                    <circle cx={x2} cy={y2} r="4" fill="#818cf8" className="group-hover:fill-sky-300 transition-colors" />
                   </g>
                 );
               })}
             </svg>
 
-            {/* Structured Clean Nodes Rendering */}
+            {/* Pixel-Perfect Clean Nodes Rendering */}
             {nodes.map(node => {
               const style = NODE_TYPES[node.type] || NODE_TYPES.action;
               const isSelected = node.id === selectedNodeId;
@@ -299,21 +316,22 @@ export default function WorkflowBuilderPage() {
                   key={node.id}
                   onMouseDown={e => handleNodeMouseDown(e, node.id)}
                   style={{ left: `${node.position?.x || 0}px`, top: `${node.position?.y || 0}px` }}
-                  className={`workflow-node absolute w-54 rounded-lg border-2 p-3.5 shadow-2xl transition-all bg-slate-900/95 backdrop-blur-md ${style.color} ${isSelected ? 'ring-2 ring-sky-400 border-sky-400 shadow-sky-500/20' : ''}`}
+                  className={`workflow-node absolute w-60 rounded-xl border p-4 shadow-2xl transition-all bg-slate-900/95 backdrop-blur-md ${style.color} ${isSelected ? 'ring-2 ring-sky-400 border-sky-400 shadow-sky-500/20' : ''}`}
                 >
-                  {/* Input Port Dot */}
+                  {/* Target Input Port Dot (Left Edge) */}
                   {node.type !== 'trigger' && (
                     <div
                       onClick={e => handlePortClick(e, node.id, 'input')}
-                      className="port-dot absolute -left-3 top-9 w-5 h-5 rounded-full bg-slate-900 border-2 border-sky-400 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-md z-30"
+                      className="port-dot absolute -left-2.5 top-7 w-5 h-5 rounded-full bg-slate-950 border-2 border-sky-400 flex items-center justify-center cursor-pointer hover:scale-125 transition-transform shadow-lg z-30"
                       title="Connect Input Here"
                     >
                       <div className="w-1.5 h-1.5 rounded-full bg-sky-400" />
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-800/80">
-                    <span className="text-[10px] font-bold tracking-widest uppercase">
+                  {/* Node Header */}
+                  <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-800/80">
+                    <span className={`text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded border ${style.badge}`}>
                       {style.label}
                     </span>
                     <span className="text-[9px] font-mono text-slate-500">ID: {node.id.slice(-4)}</span>
@@ -321,24 +339,28 @@ export default function WorkflowBuilderPage() {
 
                   <div className="text-xs font-bold text-white mb-1 truncate">{cleanLabel}</div>
 
+                  {/* ML Condition Branch Output Handles (Right Edge Flush) */}
                   {node.type === 'ml_condition' ? (
-                    <div className="mt-2 space-y-1.5 pt-2 border-t border-purple-500/20">
+                    <div className="mt-3 space-y-1.5 pt-2 border-t border-purple-500/20 relative">
                       {['interested', 'form_request', 'not_hiring', 'referral'].map(h => (
-                        <div key={h} className="flex items-center justify-between text-[10px] font-semibold text-purple-300 bg-purple-950/30 px-2 py-1 rounded border border-purple-500/20">
+                        <div key={h} className="flex items-center justify-between text-[10px] font-semibold text-purple-300 bg-purple-950/40 px-2.5 py-1.5 rounded border border-purple-500/20 relative">
                           <span className="capitalize">{h.replace('_', ' ')}</span>
+                          {/* Dedicated Branch Port Dot (Flush on Right Edge) */}
                           <div
                             onClick={e => handlePortClick(e, node.id, 'output', h)}
-                            className={`port-dot w-3.5 h-3.5 rounded-full border border-purple-400 flex items-center justify-center cursor-pointer hover:bg-purple-400 transition-colors ${connectingFrom?.nodeId === node.id && connectingFrom?.handle === h ? 'bg-purple-400' : 'bg-slate-900'}`}
-                            title={`Connect ${h} branch`}
-                          />
+                            className={`port-dot absolute -right-6 w-4 h-4 rounded-full border-2 border-purple-400 flex items-center justify-center cursor-pointer hover:scale-125 transition-all shadow-md z-30 ${connectingFrom?.nodeId === node.id && connectingFrom?.handle === h ? 'bg-purple-400' : 'bg-slate-950'}`}
+                            title={`Connect ${h} output branch`}
+                          >
+                            <div className="w-1 h-1 rounded-full bg-purple-400" />
+                          </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    /* Output Port Dot for Trigger & Action */
+                    /* Standard Output Port Dot for Trigger & Action (Right Edge) */
                     <div
                       onClick={e => handlePortClick(e, node.id, 'output')}
-                      className={`port-dot absolute -right-3 top-9 w-5 h-5 rounded-full border-2 border-sky-400 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-md z-30 ${connectingFrom?.nodeId === node.id ? 'bg-sky-400' : 'bg-slate-900'}`}
+                      className={`port-dot absolute -right-2.5 top-7 w-5 h-5 rounded-full border-2 border-sky-400 flex items-center justify-center cursor-pointer hover:scale-125 transition-transform shadow-lg z-30 ${connectingFrom?.nodeId === node.id ? 'bg-sky-400' : 'bg-slate-950'}`}
                       title="Connect Output"
                     >
                       <div className="w-1.5 h-1.5 rounded-full bg-sky-400" />
