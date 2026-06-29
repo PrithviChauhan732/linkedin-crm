@@ -4,6 +4,7 @@ const CampaignSchema = new mongoose.Schema({
   name:       { type: String, required: true },
   group:      { type: mongoose.Schema.Types.ObjectId, ref: 'Group' },
   template:   { type: mongoose.Schema.Types.ObjectId, ref: 'Template' },
+  pipeline:   { type: mongoose.Schema.Types.ObjectId, ref: 'Pipeline' },
   status:     { type: String, enum: ['draft', 'running', 'paused', 'complete'], default: 'draft' },
   stats: {
     total:    { type: Number, default: 0 },

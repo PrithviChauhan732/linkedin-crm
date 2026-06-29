@@ -20,6 +20,7 @@ app.use('/api/groups',    require('./routes/groups'));
 app.use('/api/templates', require('./routes/templates'));
 app.use('/api/campaigns', require('./routes/campaigns'));
 app.use('/api/messages',  require('./routes/messages'));
+app.use('/api/pipelines', require('./routes/pipelines'));
 
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 

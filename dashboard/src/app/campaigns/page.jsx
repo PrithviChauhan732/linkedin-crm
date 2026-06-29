@@ -15,18 +15,20 @@ export default function CampaignsPage() {
   const { data, mutate }      = useSWR('/campaigns', fetcher);
   const { data: groupsData }  = useSWR('/groups', fetcher);
   const { data: tmplData }    = useSWR('/templates', fetcher);
+  const { data: pipeData }    = useSWR('/pipelines', fetcher);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ name: '', groupId: '', templateId: '' });
+  const [form, setForm] = useState({ name: '', groupId: '', templateId: '', pipelineId: '' });
   const [running, setRunning] = useState(null);
 
   const campaigns = data?.campaigns || [];
   const groups    = groupsData?.groups || [];
   const templates = tmplData?.templates || [];
+  const pipelines = pipeData?.pipelines || [];
 
   async function createCampaign(e) {
     e.preventDefault();
     await post('/campaigns', form);
-    setForm({ name: '', groupId: '', templateId: '' });
+    setForm({ name: '', groupId: '', templateId: '', pipelineId: '' });
     setCreating(false);
     mutate();
   }
@@ -73,7 +75,7 @@ export default function CampaignsPage() {
       {creating && (
         <form onSubmit={createCampaign} className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
           <h2 className="text-sm font-semibold mb-4">Create Campaign</h2>
-          <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-4 gap-4 mb-4">
             <div>
               <label className="block text-xs text-gray-500 mb-1">Campaign Name *</label>
               <input required value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
@@ -94,6 +96,14 @@ export default function CampaignsPage() {
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white">
                 <option value="">Select template</option>
                 {templates.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Target Pipeline</label>
+              <select value={form.pipelineId} onChange={e => setForm(p => ({ ...p, pipelineId: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white">
+                <option value="">Default Pipeline</option>
+                {pipelines.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
               </select>
             </div>
           </div>
