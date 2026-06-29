@@ -23,10 +23,12 @@ const NAME_SELECTORS = [
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let observer        = null;
-let currentUrl      = window.location.href;
-let currentConversation = null;
-let campaignRunning = false; // guard against duplicate executions
+let observer              = null;
+let currentUrl            = window.location.href;
+let currentConversation   = null;
+let campaignRunning       = false; // guard against duplicate executions
+let trayObserverActive    = false;
+let currentProfileContact = null;
 
 // ── Extension context guard ───────────────────────────────────────────────────
 function isContextValid() {
@@ -70,7 +72,6 @@ function onPageChange() {
 // LinkedIn shows a messaging tray on ALL pages (feed, profile, etc.).
 // When it appears, sync conversations from it — this catches replies without
 // requiring the user to navigate to /messaging.
-let trayObserverActive = false;
 function watchForMessagingTray() {
   if (trayObserverActive) return;
   trayObserverActive = true;
@@ -321,8 +322,6 @@ async function sendLinkedInMessage(text) {
 }
 
 // ── Profile Page ──────────────────────────────────────────────────────────────
-let currentProfileContact = null;
-
 function setupProfilePage() {
   document.getElementById('lcrm-badge')?.remove();
 
