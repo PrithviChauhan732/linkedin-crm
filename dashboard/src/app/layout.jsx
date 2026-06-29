@@ -122,7 +122,7 @@ export default function RootLayout({ children }) {
           </div>
         </aside>
 
-        <main className="flex-1 overflow-hidden flex flex-col bg-slate-50">
+        <main className="flex-1 overflow-y-auto flex flex-col bg-slate-50">
           {children}
         </main>
       </body>

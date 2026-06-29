@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
   if (workflows.length === 0) {
     const defaultWf = await Workflow.create({
       name: 'Smart ML Intent Routing Workflow',
-      description: 'Visual n8n-style workflow routing replies based on Python ML outcomes',
+      description: 'Visual WarmDM workflow routing replies based on Python ML outcomes',
       active: true,
       nodes: DEFAULT_NODES,
       edges: DEFAULT_EDGES,

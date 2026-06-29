@@ -98,7 +98,7 @@ export default function WorkflowBuilderPage() {
           <div className="h-4 w-px bg-slate-800" />
           <div>
             <h1 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-              <span>⚡ n8n Visual Grid Builder</span>
+              <span>⚡ WarmDM Visual Grid Builder</span>
               <span className="text-[10px] px-2 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded font-mono">ML Active</span>
             </h1>
             <p className="text-[11px] text-slate-400">{activeWorkflow.name || 'ML Workflow Automation'}</p>
@@ -255,7 +255,7 @@ export default function WorkflowBuilderPage() {
           </div>
 
           <div className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl">
-            <div className="text-[11px] font-bold text-slate-300 mb-1">💡 n8n Branching Tip</div>
+            <div className="text-[11px] font-bold text-slate-300 mb-1">💡 WarmDM Branching Tip</div>
             <p className="text-[10px] text-slate-400 leading-relaxed">
               ML Classifier condition nodes automatically route incoming prospect replies to connected action nodes in real time.
             </p>
