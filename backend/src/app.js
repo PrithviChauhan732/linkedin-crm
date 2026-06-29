@@ -6,14 +6,12 @@ require('dotenv').config();
 const app = express();
 
 app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin || origin === 'http://localhost:3000' || origin.endsWith('.vercel.app') || origin.startsWith('chrome-extension://')) {
-      cb(null, true);
-    } else {
-      cb(null, true); // Allow production requests
-    }
-  },
+  origin: true,
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
 }));
+app.options('*', cors());
 app.use(express.json());
 
 // Routes
