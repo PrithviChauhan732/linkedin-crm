@@ -39,10 +39,31 @@ router.post('/sync-conversations', async (req, res) => {
     const hasReply = conv.isUnread || isFromThem;
 
     if (hasReply && contact.status !== 'replied') {
+      let mlTag = '#Reply';
+      let mlIntent = 'replied';
+
+      // Call Python ML Microservice for Intent Classification
+      try {
+        const mlUrl = process.env.ML_SERVICE_URL || 'http://localhost:8000/predict';
+        const mlRes = await fetch(mlUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: cleanPreview || 'Hi' }),
+        });
+        if (mlRes.ok) {
+          const mlData = await mlRes.json();
+          if (mlData.recommended_tag) mlTag = mlData.recommended_tag;
+          if (mlData.intent) mlIntent = mlData.intent;
+        }
+      } catch (err) {
+        console.log('[ML Service] Offline or unreached, using fallback defaults.');
+      }
+
       await Contact.findByIdAndUpdate(contact._id, {
         status:       'replied',
         lastReplyAt:  new Date(),
         replyPreview: cleanPreview,
+        $addToSet:    { tags: mlTag }
       });
 
       await Campaign.updateMany(
