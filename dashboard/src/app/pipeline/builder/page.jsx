@@ -5,18 +5,18 @@ import Link from 'next/link';
 import { fetcher, patch } from '../../../lib/api';
 
 const NODE_TYPES = {
-  trigger:      { label: 'Trigger Event', color: 'border-blue-500 bg-blue-50 text-blue-900', icon: '⚡' },
-  ml_condition: { label: 'ML Classifier', color: 'border-purple-500 bg-purple-50 text-purple-900', icon: '🧠' },
-  action:       { label: 'Action Node', color: 'border-emerald-500 bg-emerald-50 text-emerald-900', icon: '🎯' },
+  trigger:      { label: 'Trigger Event', color: 'border-blue-500/80 bg-slate-900 text-blue-400' },
+  ml_condition: { label: 'ML Classifier', color: 'border-purple-500/80 bg-slate-900 text-purple-400' },
+  action:       { label: 'Action Node', color: 'border-emerald-500/80 bg-slate-900 text-emerald-400' },
 };
 
 const ML_BRANCHES = [
-  { id: 'interested', label: 'Interested', tag: '#Interested', desc: 'Positive response / meeting request', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
-  { id: 'not_hiring', label: 'Not Hiring', tag: '#NotHiring', desc: 'No open roles or hiring freeze', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
-  { id: 'not_interested', label: 'Not Interested', tag: '#NotInterested', desc: 'Polite decline or pass', color: 'bg-rose-500/20 text-rose-300 border-rose-500/40' },
-  { id: 'referral', label: 'Referral', tag: '#Referral', desc: 'Redirected to another colleague', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40' },
-  { id: 'question', label: 'Inquiry', tag: '#Inquiry', desc: 'Pricing or service question', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
-  { id: 'ooo', label: 'Out of Office', tag: '#OutOfOffice', desc: 'Vacation or automated reply', color: 'bg-slate-500/20 text-slate-300 border-slate-500/40' },
+  { id: 'interested', label: 'Interested', tag: '#Interested', desc: 'Positive response / meeting request', color: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' },
+  { id: 'not_hiring', label: 'Not Hiring', tag: '#NotHiring', desc: 'No open roles or hiring freeze', color: 'bg-amber-500/10 text-amber-300 border-amber-500/30' },
+  { id: 'not_interested', label: 'Not Interested', tag: '#NotInterested', desc: 'Polite decline or pass', color: 'bg-rose-500/10 text-rose-300 border-rose-500/30' },
+  { id: 'referral', label: 'Referral', tag: '#Referral', desc: 'Redirected to another colleague', color: 'bg-blue-500/10 text-blue-300 border-blue-500/30' },
+  { id: 'question', label: 'Inquiry', tag: '#Inquiry', desc: 'Pricing or service question', color: 'bg-purple-500/10 text-purple-300 border-purple-500/30' },
+  { id: 'ooo', label: 'Out of Office', tag: '#OutOfOffice', desc: 'Vacation or automated reply', color: 'bg-slate-500/10 text-slate-300 border-slate-500/30' },
 ];
 
 export default function WorkflowBuilderPage() {
@@ -33,7 +33,7 @@ export default function WorkflowBuilderPage() {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-  const [connectingFrom, setConnectingFrom] = useState(null); // { nodeId, handle }
+  const [connectingFrom, setConnectingFrom] = useState(null);
 
   const [draggedNodeId, setDraggedNodeId] = useState(null);
   const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
@@ -77,7 +77,6 @@ export default function WorkflowBuilderPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedNodeId]);
 
-  // Canvas Mouse Wheel Zoom
   function handleWheel(e) {
     e.preventDefault();
     const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
@@ -141,7 +140,7 @@ export default function WorkflowBuilderPage() {
     const newNode = {
       id,
       type,
-      label: type === 'trigger' ? '⚡ Reply Received' : type === 'ml_condition' ? '🧠 ML Intent Filter' : '🎯 Move Stage',
+      label: type === 'trigger' ? 'LinkedIn Reply Received' : type === 'ml_condition' ? 'ML Intent Classifier' : 'Update Pipeline Stage',
       config: type === 'action' ? { actionType: 'move_stage', stageId: 'replied' } : {},
       position: { x: Math.round(100 - pan.x / zoom + nodes.length * 30), y: Math.round(150 - pan.y / zoom + (nodes.length % 3) * 40) },
     };
@@ -189,29 +188,29 @@ export default function WorkflowBuilderPage() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 text-slate-100 overflow-hidden font-sans select-none">
+    <div className="flex flex-col h-full bg-slate-950 text-slate-100 overflow-hidden font-sans select-none antialiased">
       {/* Top Bar Navigation & Actions */}
       <div className="h-16 px-6 border-b border-slate-800 bg-slate-900 flex items-center justify-between shrink-0 z-40">
         <div className="flex items-center gap-4">
-          <Link href="/pipeline" className="text-xs font-bold px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all">
+          <Link href="/pipeline" className="text-xs font-semibold px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md transition-all">
             ← Back to Pipeline
           </Link>
           <div className="h-4 w-px bg-slate-800" />
           <div>
             <h1 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-              <span>⚡ WarmDM Visual Grid Builder</span>
-              <span className="text-[10px] px-2 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded font-mono">ML Active</span>
+              <span>WarmDM Visual Workflow Builder</span>
+              <span className="text-[10px] px-2 py-0.5 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded font-semibold">ML Active</span>
             </h1>
-            <p className="text-[11px] text-slate-400">{activeWorkflow.name || 'ML Workflow Automation'}</p>
+            <p className="text-[11px] text-slate-400 font-medium">{activeWorkflow.name || 'Automated Outreach Workflow'}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button onClick={() => addNode('trigger')} className="text-xs font-bold px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 rounded-lg transition-all">+ Trigger Node</button>
-          <button onClick={() => addNode('ml_condition')} className="text-xs font-bold px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-purple-300 rounded-lg transition-all">+ ML Condition</button>
-          <button onClick={() => addNode('action')} className="text-xs font-bold px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 rounded-lg transition-all">+ Action Node</button>
+        <div className="flex items-center gap-2.5">
+          <button onClick={() => addNode('trigger')} className="text-xs font-semibold px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-md transition-all">+ Trigger Node</button>
+          <button onClick={() => addNode('ml_condition')} className="text-xs font-semibold px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-400 rounded-md transition-all">+ ML Condition</button>
+          <button onClick={() => addNode('action')} className="text-xs font-semibold px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-md transition-all">+ Action Node</button>
 
-          <button onClick={saveWorkflow} disabled={saving} className="text-xs font-bold px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg shadow-md shadow-blue-500/20 transition-all ml-2">
+          <button onClick={saveWorkflow} disabled={saving} className="text-xs font-bold px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md shadow-sm shadow-blue-500/20 transition-all ml-2">
             {saving ? 'Saving...' : 'Save & Activate Graph'}
           </button>
         </div>
@@ -249,8 +248,8 @@ export default function WorkflowBuilderPage() {
 
                 return (
                   <g key={edge.id} className="cursor-pointer pointer-events-auto" onClick={() => setEdges(edges.filter(e => e.id !== edge.id))}>
-                    <path d={`M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`} fill="none" stroke="#38bdf8" strokeWidth="3.5" strokeDasharray={edge.sourceHandle === 'not_hiring' ? '5 5' : 'none'} />
-                    <circle cx={x2} cy={y2} r="5" fill="#38bdf8" />
+                    <path d={`M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`} fill="none" stroke="#38bdf8" strokeWidth="2.5" strokeDasharray={edge.sourceHandle === 'not_hiring' ? '4 4' : 'none'} />
+                    <circle cx={x2} cy={y2} r="4" fill="#38bdf8" />
                   </g>
                 );
               })}
@@ -266,37 +265,36 @@ export default function WorkflowBuilderPage() {
                   key={node.id}
                   onMouseDown={e => handleNodeMouseDown(e, node.id)}
                   style={{ left: `${node.position?.x || 0}px`, top: `${node.position?.y || 0}px` }}
-                  className={`workflow-node absolute w-52 rounded-xl border-2 p-3.5 shadow-xl transition-shadow bg-slate-900 ${style.color} ${isSelected ? 'ring-2 ring-sky-400 border-sky-400 shadow-sky-500/20' : ''}`}
+                  className={`workflow-node absolute w-52 rounded-lg border-2 p-3.5 shadow-xl transition-all bg-slate-900 ${style.color} ${isSelected ? 'ring-2 ring-sky-400 border-sky-400 shadow-sky-500/20' : ''}`}
                 >
                   {/* Input Port Dot */}
                   {node.type !== 'trigger' && (
                     <div
                       onClick={e => handlePortClick(e, node.id, 'input')}
-                      className="port-dot absolute -left-3 top-9 w-6 h-6 rounded-full bg-slate-800 border-2 border-sky-400 flex items-center justify-center cursor-pointer hover:scale-110 shadow-md z-30"
+                      className="port-dot absolute -left-3 top-9 w-5 h-5 rounded-full bg-slate-900 border-2 border-sky-400 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-md z-30"
                       title="Connect Input Here"
                     >
-                      <div className="w-2 h-2 rounded-full bg-sky-400" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-sky-400" />
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-black tracking-wider uppercase flex items-center gap-1.5">
-                      <span>{style.icon}</span>
-                      <span>{style.label}</span>
+                  <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-800">
+                    <span className="text-[11px] font-bold tracking-wider uppercase">
+                      {style.label}
                     </span>
-                    <span className="text-[9px] font-mono opacity-60">ID: {node.id.slice(-4)}</span>
+                    <span className="text-[9px] font-mono text-slate-500">ID: {node.id.slice(-4)}</span>
                   </div>
 
                   <div className="text-xs font-bold text-white mb-1 truncate">{node.label}</div>
 
                   {node.type === 'ml_condition' ? (
-                    <div className="mt-2 space-y-1.5 pt-2 border-t border-purple-500/30">
+                    <div className="mt-2 space-y-1.5 pt-2 border-t border-purple-500/20">
                       {['interested', 'not_hiring', 'referral'].map(h => (
-                        <div key={h} className="flex items-center justify-between text-[10px] font-bold text-purple-200 bg-purple-950/40 px-2 py-1 rounded border border-purple-500/20">
+                        <div key={h} className="flex items-center justify-between text-[10px] font-semibold text-purple-300 bg-purple-950/30 px-2 py-1 rounded border border-purple-500/20">
                           <span className="capitalize">{h.replace('_', ' ')}</span>
                           <div
                             onClick={e => handlePortClick(e, node.id, 'output', h)}
-                            className={`port-dot w-4 h-4 rounded-full border border-purple-400 flex items-center justify-center cursor-pointer hover:bg-purple-400 ${connectingFrom?.nodeId === node.id && connectingFrom?.handle === h ? 'bg-purple-400' : 'bg-slate-800'}`}
+                            className={`port-dot w-3.5 h-3.5 rounded-full border border-purple-400 flex items-center justify-center cursor-pointer hover:bg-purple-400 transition-colors ${connectingFrom?.nodeId === node.id && connectingFrom?.handle === h ? 'bg-purple-400' : 'bg-slate-900'}`}
                             title={`Connect ${h} branch`}
                           />
                         </div>
@@ -306,10 +304,10 @@ export default function WorkflowBuilderPage() {
                     /* Output Port Dot for Trigger & Action */
                     <div
                       onClick={e => handlePortClick(e, node.id, 'output')}
-                      className={`port-dot absolute -right-3 top-9 w-6 h-6 rounded-full border-2 border-sky-400 flex items-center justify-center cursor-pointer hover:scale-110 shadow-md z-30 ${connectingFrom?.nodeId === node.id ? 'bg-sky-400' : 'bg-slate-800'}`}
+                      className={`port-dot absolute -right-3 top-9 w-5 h-5 rounded-full border-2 border-sky-400 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-md z-30 ${connectingFrom?.nodeId === node.id ? 'bg-sky-400' : 'bg-slate-900'}`}
                       title="Connect Output"
                     >
-                      <div className="w-2 h-2 rounded-full bg-sky-400" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-sky-400" />
                     </div>
                   )}
                 </div>
@@ -318,12 +316,12 @@ export default function WorkflowBuilderPage() {
           </div>
 
           {/* Floating Zoom & Controls Widget */}
-          <div className="absolute bottom-6 left-6 z-30 flex items-center gap-1 bg-slate-900/90 border border-slate-800 p-1.5 rounded-xl shadow-xl backdrop-blur-md">
-            <button onClick={() => setZoom(z => Math.min(2.0, Number((z + 0.15).toFixed(2))))} className="w-8 h-8 flex items-center justify-center text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white rounded-lg">+</button>
-            <span className="text-xs font-mono font-bold text-slate-300 px-2.5 min-w-[50px] text-center">{Math.round(zoom * 100)}%</span>
-            <button onClick={() => setZoom(z => Math.max(0.4, Number((z - 0.15).toFixed(2))))} className="w-8 h-8 flex items-center justify-center text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white rounded-lg">-</button>
-            <div className="h-4 w-px bg-slate-800 mx-1" />
-            <button onClick={() => { setZoom(1.0); setPan({ x: 0, y: 0 }); }} className="text-xs font-bold px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg">Reset View</button>
+          <div className="absolute bottom-6 left-6 z-30 flex items-center gap-1 bg-slate-900/90 border border-slate-800 p-1.5 rounded-lg shadow-xl backdrop-blur-md">
+            <button onClick={() => setZoom(z => Math.min(2.0, Number((z + 0.15).toFixed(2))))} className="w-7 h-7 flex items-center justify-center text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white rounded transition-all">+</button>
+            <span className="text-xs font-mono font-bold text-slate-300 px-2 min-w-[45px] text-center">{Math.round(zoom * 100)}%</span>
+            <button onClick={() => setZoom(z => Math.max(0.4, Number((z - 0.15).toFixed(2))))} className="w-7 h-7 flex items-center justify-center text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white rounded transition-all">-</button>
+            <div className="h-3.5 w-px bg-slate-800 mx-1" />
+            <button onClick={() => { setZoom(1.0); setPan({ x: 0, y: 0 }); }} className="text-xs font-semibold px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded transition-all">Reset View</button>
           </div>
         </div>
 
@@ -340,47 +338,47 @@ export default function WorkflowBuilderPage() {
                     type="text"
                     value={selectedNode.label}
                     onChange={e => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, label: e.target.value } : n))}
-                    className="w-full text-xs font-bold bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white outline-none focus:border-blue-500"
+                    className="w-full text-xs font-semibold bg-slate-950 border border-slate-800 rounded-md p-2.5 text-white outline-none focus:border-blue-500"
                   />
                 </div>
 
                 {/* ML Classifier Details & Real-Time Tester */}
                 {selectedNode.type === 'ml_condition' && (
                   <div className="space-y-4 pt-3 border-t border-slate-800">
-                    <label className="block text-xs font-bold text-purple-300 uppercase tracking-wider">🧠 ML Output Branches</label>
+                    <label className="block text-xs font-bold text-purple-400 uppercase tracking-wider">ML Output Branches</label>
                     <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                       {ML_BRANCHES.map(b => (
-                        <div key={b.id} className={`p-2.5 rounded-lg border text-xs ${b.color}`}>
-                          <div className="flex items-center justify-between font-bold">
+                        <div key={b.id} className={`p-2.5 rounded-md border text-xs ${b.color}`}>
+                          <div className="flex items-center justify-between font-semibold">
                             <span>{b.label}</span>
                             <span className="font-mono text-[10px]">{b.tag}</span>
                           </div>
-                          <div className="text-[10px] opacity-80 mt-0.5">{b.desc}</div>
+                          <div className="text-[10px] opacity-75 mt-0.5">{b.desc}</div>
                         </div>
                       ))}
                     </div>
 
                     {/* Interactive Sample Tester Box */}
-                    <div className="p-3.5 bg-slate-950 border border-purple-500/30 rounded-xl space-y-2.5">
-                      <label className="block text-[11px] font-bold text-purple-300">⚡ Test ML Sample Outcome</label>
+                    <div className="p-3.5 bg-slate-950 border border-purple-500/20 rounded-lg space-y-2.5">
+                      <label className="block text-[11px] font-semibold text-purple-300">Test ML Sample Outcome</label>
                       <textarea
                         rows={2}
                         value={testMessage}
                         onChange={e => setTestMessage(e.target.value)}
-                        className="w-full text-xs p-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 outline-none focus:border-purple-500 resize-none"
+                        className="w-full text-xs p-2 bg-slate-900 border border-slate-800 rounded-md text-slate-200 outline-none focus:border-purple-500 resize-none"
                         placeholder="Type a sample prospect reply..."
                       />
                       <button
                         type="button"
                         onClick={runSampleMLTest}
-                        className="w-full py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-sm shadow-purple-500/20 transition-all"
+                        className="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-md shadow-sm shadow-purple-500/20 transition-all"
                       >
-                        ⚡ Simulate ML Outcome
+                        Simulate ML Outcome
                       </button>
 
                       {testResult && (
-                        <div className="pt-2 border-t border-slate-800/80 text-xs">
-                          <div className="text-[10px] text-slate-400">Predicted Branch Outcome:</div>
+                        <div className="pt-2 border-t border-slate-800 text-xs">
+                          <div className="text-[10px] text-slate-400 font-medium">Predicted Branch Outcome:</div>
                           <div className="flex items-center justify-between mt-1 font-bold text-emerald-400">
                             <span>{testResult.label} ({testResult.tag})</span>
                             <span className="font-mono text-[10px] text-slate-300">{Math.round(testResult.confidence * 100)}% Match</span>
@@ -397,7 +395,7 @@ export default function WorkflowBuilderPage() {
                     <select
                       value={selectedNode.config?.actionType || 'move_stage'}
                       onChange={e => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, config: { ...n.config, actionType: e.target.value } } : n))}
-                      className="w-full text-xs font-bold bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white outline-none focus:border-blue-500"
+                      className="w-full text-xs font-semibold bg-slate-950 border border-slate-800 rounded-md p-2.5 text-white outline-none focus:border-blue-500"
                     >
                       <option value="move_stage">Move to Pipeline Stage</option>
                       <option value="add_tag">Apply Tag (#Tag)</option>
@@ -407,7 +405,7 @@ export default function WorkflowBuilderPage() {
                 )}
 
                 <div className="pt-4 border-t border-slate-800">
-                  <button onClick={deleteSelectedNode} className="w-full text-xs font-bold py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded-lg transition-all">
+                  <button onClick={deleteSelectedNode} className="w-full text-xs font-semibold py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-md transition-all">
                     Delete Node (Delete Key)
                   </button>
                 </div>
@@ -419,8 +417,8 @@ export default function WorkflowBuilderPage() {
             )}
           </div>
 
-          <div className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl mt-4">
-            <div className="text-[11px] font-bold text-slate-300 mb-1">⌨️ Keyboard Shortcuts</div>
+          <div className="p-3 bg-slate-950 border border-slate-800/80 rounded-lg mt-4">
+            <div className="text-[11px] font-semibold text-slate-300 mb-1">Keyboard Shortcuts</div>
             <div className="text-[10px] text-slate-400 space-y-1">
               <div><kbd className="bg-slate-800 px-1 rounded text-white">Delete</kbd> : Delete selected node</div>
               <div><kbd className="bg-slate-800 px-1 rounded text-white">Arrows</kbd> : Nudge node position</div>
