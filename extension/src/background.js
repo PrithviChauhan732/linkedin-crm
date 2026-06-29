@@ -2,7 +2,7 @@
  * LinkedIn CRM — Background Service Worker
  */
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = 'https://linkedin-crm-y0bz.onrender.com/api';
 
 let campaign = null;
 
@@ -74,8 +74,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       return true;
 
     case 'OPEN_ADD_TO_GROUP':
-      chrome.tabs.create({
-        url: `http://localhost:3000/contacts/add?name=${encodeURIComponent(msg.data.username || msg.data.name)}&url=${encodeURIComponent(msg.data.profileUrl)}`,
+      chrome.storage.local.get(['dashboardUrl'], ({ dashboardUrl }) => {
+        const base = dashboardUrl || 'https://linkpulse.vercel.app';
+        chrome.tabs.create({
+          url: `${base}/contacts/add?name=${encodeURIComponent(msg.data.username || msg.data.name)}&url=${encodeURIComponent(msg.data.profileUrl)}`,
+        });
       });
       sendResponse({ ok: true });
       break;

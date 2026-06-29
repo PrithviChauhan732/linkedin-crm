@@ -2,7 +2,7 @@
  * LinkedIn CRM — Content Script
  */
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = 'https://linkedin-crm-y0bz.onrender.com/api';
 
 const SEL = {
   composeBox: '.msg-form__contenteditable',

@@ -7,10 +7,10 @@ const app = express();
 
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || origin === 'http://localhost:3000' || origin.startsWith('chrome-extension://')) {
+    if (!origin || origin === 'http://localhost:3000' || origin.endsWith('.vercel.app') || origin.startsWith('chrome-extension://')) {
       cb(null, true);
     } else {
-      cb(new Error('Not allowed by CORS'));
+      cb(null, true); // Allow production requests
     }
   },
 }));

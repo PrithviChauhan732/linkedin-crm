@@ -1,4 +1,4 @@
-const BASE = 'http://localhost:4000/api';
+const BASE = process.env.NEXT_PUBLIC_API_URL || 'https://linkedin-crm-y0bz.onrender.com/api';
 
 export async function fetcher(path) {
   const res = await fetch(`${BASE}${path}`);
