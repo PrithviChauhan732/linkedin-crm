@@ -65,12 +65,20 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className="flex h-screen bg-slate-50 text-slate-900 font-sans antialiased">
         <aside className="w-60 bg-slate-900 text-slate-300 flex flex-col shrink-0 select-none border-r border-slate-800">
-          <div className="px-6 py-6 border-b border-slate-800/80">
-            <div className="text-xl font-black text-white tracking-tight flex items-center gap-1.5">
-              <span>Warm</span>
-              <span className="text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 text-base">DM</span>
+          <div className="px-6 py-5 border-b border-slate-800/80">
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-black tracking-tight text-white">Warm</span>
+              <div className="flex items-center gap-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-2.5 py-0.5 rounded-full text-xs font-bold shadow-sm shadow-blue-500/20 tracking-wider">
+                <span>DM</span>
+                <svg className="w-3 h-3 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </div>
             </div>
-            <div className="text-[11px] text-slate-400 font-medium mt-1 tracking-wide">Outreach & Cold DM CRM</div>
+            <div className="text-[11px] text-slate-400 font-medium mt-1.5 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
+              <span>Cold DM Outreach Platform</span>
+            </div>
           </div>
           <nav className="flex-1 px-3 py-4 space-y-1">
             {NAV.map(item => (
