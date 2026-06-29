@@ -1,4 +1,5 @@
 import re
+import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline as SkPipeline
@@ -69,7 +70,7 @@ class IntentClassifierModel:
         intent = classes[max_idx]
         confidence = float(probs[max_idx])
 
-        # Rule heuristic overrides for clear outreach keywords
+        # Rule heuristic overrides for unambiguous outreach keywords
         if any(w in cleaned for w in ["fill this form", "fill out this form", "complete our form", "questionnaire", "intake form", "vendor portal", "procurement portal", "survey form", "vendor form", "fill in this form"]):
             intent = "form_request"
             confidence = 0.97
@@ -88,4 +89,37 @@ class IntentClassifierModel:
             "confidence": round(confidence, 3),
             "recommended_stage": INTENT_STAGE_MAP.get(intent, "replied"),
             "recommended_tag": INTENT_TAG_MAP.get(intent, "#Reply")
+        }
+
+    def explain(self, text: str):
+        """Explainable AI (XAI) feature weight extraction"""
+        if not self.is_trained:
+            self.train()
+
+        cleaned = clean_text(text)
+        tfidf = self.pipeline.named_steps['tfidf']
+        clf = self.pipeline.named_steps['clf']
+
+        vector = tfidf.transform([cleaned])
+        feature_names = np.array(tfidf.get_feature_names_out())
+        non_zero_indices = vector.nonzero()[1]
+
+        explanation = []
+        if len(non_zero_indices) > 0:
+            pred_res = self.predict(text)
+            pred_class = pred_res['intent']
+            if pred_class in clf.classes_:
+                class_idx = list(clf.classes_).index(pred_class)
+                coefs = clf.coef_[class_idx]
+
+                for idx in non_zero_indices:
+                    word = feature_names[idx]
+                    weight = coefs[idx] * vector[0, idx]
+                    explanation.append({"token": word, "weight": round(float(weight), 4)})
+                
+                explanation.sort(key=lambda x: x['weight'], reverse=True)
+
+        return {
+            "prediction": self.predict(text),
+            "top_influential_tokens": explanation[:5]
         }

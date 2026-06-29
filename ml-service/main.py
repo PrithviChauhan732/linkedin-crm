@@ -61,3 +61,9 @@ def train_model(req: TrainRequest):
     samples_tuple = [(s.text, s.label) for s in req.samples]
     total = classifier.train(extra_data=samples_tuple)
     return {"ok": True, "total_samples": total}
+
+@app.post("/explain")
+def explain_prediction(req: PredictRequest):
+    if not req.text or not req.text.strip():
+        raise HTTPException(status_code=400, detail="Text cannot be empty")
+    return classifier.explain(req.text)
