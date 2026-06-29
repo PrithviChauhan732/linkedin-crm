@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = 'https://linkedin-crm-y0bz.onrender.com/api';
 
 async function api(path) {
   const res = await fetch(`${API_BASE}${path}`);
