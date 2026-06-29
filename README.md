@@ -1,6 +1,6 @@
-# LinkedIn CRM
+# WarmDM — Cold DM & Outreach CRM
 
-Personal LinkedIn outreach manager — Chrome extension + dashboard.
+Turn cold LinkedIn DMs into warm leads, track responses, and run personalized outreach campaigns.
 
 ## Architecture
 

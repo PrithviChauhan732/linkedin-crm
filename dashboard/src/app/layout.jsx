@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import './globals.css';
 
-export const metadata = { title: 'LinkedIn CRM — Enterprise Outreach' };
+export const metadata = { title: 'WarmDM — Cold DM & Outreach CRM' };
 
 function Icon({ name }) {
   const icons = {
@@ -66,12 +66,12 @@ export default function RootLayout({ children }) {
       <body className="flex h-screen bg-slate-50 text-slate-900 font-sans antialiased">
         <aside className="w-60 bg-slate-900 text-slate-300 flex flex-col shrink-0 select-none border-r border-slate-800">
           <div className="px-6 py-5 border-b border-slate-800/80 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-blue-500/20">
-              CRM
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-blue-500/20">
+              WDM
             </div>
             <div>
-              <div className="text-sm font-semibold text-white tracking-tight">LinkedIn CRM</div>
-              <div className="text-[11px] text-slate-400 font-medium">Enterprise Outreach</div>
+              <div className="text-sm font-bold text-white tracking-tight">WarmDM</div>
+              <div className="text-[11px] text-slate-400 font-medium">Cold DM CRM</div>
             </div>
           </div>
           <nav className="flex-1 px-3 py-4 space-y-1">

@@ -75,7 +75,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     case 'OPEN_ADD_TO_GROUP':
       chrome.storage.local.get(['dashboardUrl'], ({ dashboardUrl }) => {
-        const base = dashboardUrl || 'https://linkpulse.vercel.app';
+        const base = dashboardUrl || 'https://warmdm.vercel.app';
         chrome.tabs.create({
           url: `${base}/contacts/add?name=${encodeURIComponent(msg.data.username || msg.data.name)}&url=${encodeURIComponent(msg.data.profileUrl)}`,
         });

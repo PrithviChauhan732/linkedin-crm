@@ -22,7 +22,7 @@ export default function OverviewPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-200">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">CRM Dashboard Overview</h1>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">WarmDM Overview</h1>
           <p className="text-xs text-slate-500 mt-1 font-medium">Outreach metrics, prospect pipeline status, and active campaign activity</p>
         </div>
         <div className="flex gap-3">
