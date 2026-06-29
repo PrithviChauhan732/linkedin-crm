@@ -5,8 +5,8 @@ from sklearn.pipeline import Pipeline as SkPipeline
 from dataset import TRAINING_DATA
 
 INTENT_STAGE_MAP = {
-    "interested font-bold": "replied",
     "interested": "replied",
+    "form_request": "replied",
     "not_hiring": "not_replied",
     "not_interested": "not_replied",
     "referral": "replied",
@@ -16,6 +16,7 @@ INTENT_STAGE_MAP = {
 
 INTENT_TAG_MAP = {
     "interested": "#Interested",
+    "form_request": "#FormRequest",
     "not_hiring": "#NotHiring",
     "not_interested": "#NotInterested",
     "referral": "#Referral",
@@ -69,7 +70,10 @@ class IntentClassifierModel:
         confidence = float(probs[max_idx])
 
         # Rule heuristic overrides for clear outreach keywords
-        if any(w in cleaned for w in ["out of office", "vacation", "automated reply", "auto reply", "on leave", "out of office returning"]):
+        if any(w in cleaned for w in ["fill this form", "fill out this form", "complete our form", "questionnaire", "intake form", "vendor portal", "procurement portal", "survey form", "vendor form", "fill in this form"]):
+            intent = "form_request"
+            confidence = 0.97
+        elif any(w in cleaned for w in ["out of office", "vacation", "automated reply", "auto reply", "on leave", "out of office returning"]):
             intent = "ooo"
             confidence = 0.98
         elif any(w in cleaned for w in ["not hiring", "no open roles", "hiring freeze", "no vacancy", "full at this time", "fully staffed", "no open positions", "no headcount", "team is full"]):

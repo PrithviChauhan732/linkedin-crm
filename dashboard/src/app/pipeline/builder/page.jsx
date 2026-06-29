@@ -12,6 +12,7 @@ const NODE_TYPES = {
 
 const ML_BRANCHES = [
   { id: 'interested', label: 'Interested', tag: '#Interested', desc: 'Positive response / meeting request', color: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' },
+  { id: 'form_request', label: 'Form Request', tag: '#FormRequest', desc: 'Vendor questionnaire or form link', color: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30' },
   { id: 'not_hiring', label: 'Not Hiring', tag: '#NotHiring', desc: 'No open roles or hiring freeze', color: 'bg-amber-500/10 text-amber-300 border-amber-500/30' },
   { id: 'not_interested', label: 'Not Interested', tag: '#NotInterested', desc: 'Polite decline or pass', color: 'bg-rose-500/10 text-rose-300 border-rose-500/30' },
   { id: 'referral', label: 'Referral', tag: '#Referral', desc: 'Redirected to another colleague', color: 'bg-blue-500/10 text-blue-300 border-blue-500/30' },
@@ -169,13 +170,16 @@ export default function WorkflowBuilderPage() {
     let intent = "interested";
     let conf = 0.94;
 
+    const formKeywords = ["fill this form", "fill out", "complete our form", "questionnaire", "intake form", "vendor portal", "procurement portal", "survey form", "vendor form", "apply through"];
     const notHiringKeywords = ["not hiring", "no open roles", "hiring freeze", "no vacancy", "full at this time", "fully staffed", "no open positions", "no headcount", "team is full", "full capacity"];
     const notInterestedKeywords = ["not interested", "pass for now", "no thank you", "remove me", "no budget", "not a fit", "no bandwidth", "don't need external", "pass"];
     const referralKeywords = ["reach out to", "contact", "speak with", "forwarding", "cto", "vp of", "coordinator"];
     const oooKeywords = ["out of office", "vacation", "leave", "automated reply", "auto reply", "traveling"];
     const questionKeywords = ["pricing", "rates", "cost", "how does", "what is", "case studies"];
 
-    if (notHiringKeywords.some(w => text.includes(w))) {
+    if (formKeywords.some(w => text.includes(w))) {
+      intent = "form_request"; conf = 0.97;
+    } else if (notHiringKeywords.some(w => text.includes(w))) {
       intent = "not_hiring"; conf = 0.96;
     } else if (notInterestedKeywords.some(w => text.includes(w))) {
       intent = "not_interested"; conf = 0.94;
@@ -264,7 +268,7 @@ export default function WorkflowBuilderPage() {
 
                 let handleOffsetY = 42;
                 if (srcNode.type === 'ml_condition') {
-                  const handles = ['interested', 'not_hiring', 'referral', 'not_interested', 'question', 'ooo'];
+                  const handles = ['interested', 'form_request', 'not_hiring', 'referral', 'not_interested', 'question', 'ooo'];
                   const idx = handles.indexOf(edge.sourceHandle);
                   if (idx !== -1) handleOffsetY = 38 + idx * 22;
                 }
@@ -319,7 +323,7 @@ export default function WorkflowBuilderPage() {
 
                   {node.type === 'ml_condition' ? (
                     <div className="mt-2 space-y-1.5 pt-2 border-t border-purple-500/20">
-                      {['interested', 'not_hiring', 'referral'].map(h => (
+                      {['interested', 'form_request', 'not_hiring', 'referral'].map(h => (
                         <div key={h} className="flex items-center justify-between text-[10px] font-semibold text-purple-300 bg-purple-950/30 px-2 py-1 rounded border border-purple-500/20">
                           <span className="capitalize">{h.replace('_', ' ')}</span>
                           <div
