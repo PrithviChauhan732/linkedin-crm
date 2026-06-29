@@ -2,11 +2,11 @@ const router = require('express').Router();
 const Workflow = require('../models/Workflow');
 
 const DEFAULT_NODES = [
-  { id: 'node_1', type: 'trigger', label: '⚡ LinkedIn Reply Received', config: { event: 'reply_received' }, position: { x: 50, y: 180 } },
-  { id: 'node_2', type: 'ml_condition', label: '🧠 ML Intent Classifier', config: { model: 'fastapi_nlp' }, position: { x: 340, y: 180 } },
-  { id: 'node_3', type: 'action', label: '🎯 Move to Engaged Stage', config: { actionType: 'move_stage', stageId: 'replied' }, position: { x: 670, y: 60 } },
-  { id: 'node_4', type: 'action', label: '🏷️ Tag #NotHiring', config: { actionType: 'add_tag', tag: '#NotHiring' }, position: { x: 670, y: 180 } },
-  { id: 'node_5', type: 'action', label: '🏷️ Tag #Referral', config: { actionType: 'add_tag', tag: '#Referral' }, position: { x: 670, y: 300 } },
+  { id: 'node_1', type: 'trigger', label: 'LinkedIn Reply Received', config: { event: 'reply_received' }, position: { x: 60, y: 180 } },
+  { id: 'node_2', type: 'ml_condition', label: 'ML Intent Classifier', config: { model: 'fastapi_nlp' }, position: { x: 360, y: 180 } },
+  { id: 'node_3', type: 'action', label: 'Move to Engaged Stage', config: { actionType: 'move_stage', stageId: 'replied' }, position: { x: 700, y: 60 } },
+  { id: 'node_4', type: 'action', label: 'Apply Tag #NotHiring', config: { actionType: 'add_tag', tag: '#NotHiring' }, position: { x: 700, y: 190 } },
+  { id: 'node_5', type: 'action', label: 'Apply Tag #Referral', config: { actionType: 'add_tag', tag: '#Referral' }, position: { x: 700, y: 320 } },
 ];
 
 const DEFAULT_EDGES = [
@@ -16,7 +16,7 @@ const DEFAULT_EDGES = [
   { id: 'e2-5', source: 'node_2', target: 'node_5', sourceHandle: 'referral' },
 ];
 
-// GET /api/workflows — List all workflows (seeds default if none exist)
+// GET /api/workflows — List all workflows (seeds clean default if none exist)
 router.get('/', async (req, res) => {
   let workflows = await Workflow.find().sort({ createdAt: 1 });
   if (workflows.length === 0) {

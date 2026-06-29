@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { fetcher, patch } from '../../../lib/api';
 
 const NODE_TYPES = {
-  trigger:      { label: 'Trigger Event', color: 'border-blue-500/80 bg-slate-900 text-blue-400' },
-  ml_condition: { label: 'ML Classifier', color: 'border-purple-500/80 bg-slate-900 text-purple-400' },
-  action:       { label: 'Action Node', color: 'border-emerald-500/80 bg-slate-900 text-emerald-400' },
+  trigger:      { label: 'TRIGGER', color: 'border-blue-500/60 bg-slate-900/95 text-blue-400' },
+  ml_condition: { label: 'ML CONDITION', color: 'border-purple-500/60 bg-slate-900/95 text-purple-400' },
+  action:       { label: 'ACTION', color: 'border-emerald-500/60 bg-slate-900/95 text-emerald-400' },
 };
 
 const ML_BRANCHES = [
@@ -18,6 +18,11 @@ const ML_BRANCHES = [
   { id: 'question', label: 'Inquiry', tag: '#Inquiry', desc: 'Pricing or service question', color: 'bg-purple-500/10 text-purple-300 border-purple-500/30' },
   { id: 'ooo', label: 'Out of Office', tag: '#OutOfOffice', desc: 'Vacation or automated reply', color: 'bg-slate-500/10 text-slate-300 border-slate-500/30' },
 ];
+
+function sanitize(str) {
+  if (!str) return '';
+  return str.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
+}
 
 export default function WorkflowBuilderPage() {
   const { data: wfData, mutate } = useSWR('/workflows', fetcher);
@@ -46,11 +51,12 @@ export default function WorkflowBuilderPage() {
   const [testMessage, setTestMessage] = useState("we are full at this time with no vacancy");
   const [testResult, setTestResult] = useState(null);
 
-  // Sync loaded workflow into local state
+  // Sync loaded workflow into local state and sanitize clean labels
   const loadedIdRef = useRef(null);
   if (activeWorkflow._id && loadedIdRef.current !== activeWorkflow._id) {
     loadedIdRef.current = activeWorkflow._id;
-    setNodes(activeWorkflow.nodes || []);
+    const cleanNodes = (activeWorkflow.nodes || []).map(n => ({ ...n, label: sanitize(n.label) }));
+    setNodes(cleanNodes);
     setEdges(activeWorkflow.edges || []);
   }
 
@@ -159,7 +165,7 @@ export default function WorkflowBuilderPage() {
   }
 
   function runSampleMLTest() {
-    const text = testMessage.toLowerCase().strip ? testMessage.toLowerCase().strip() : testMessage.toLowerCase().trim();
+    const text = testMessage.toLowerCase().trim();
     let intent = "interested";
     let conf = 0.94;
 
@@ -202,29 +208,30 @@ export default function WorkflowBuilderPage() {
 
   return (
     <div className="flex flex-col h-full bg-slate-950 text-slate-100 overflow-hidden font-sans select-none antialiased">
-      {/* Top Bar Navigation & Actions */}
-      <div className="h-16 px-6 border-b border-slate-800 bg-slate-900 flex items-center justify-between shrink-0 z-40">
+      {/* Sleek Enterprise Top Navigation Bar */}
+      <div className="h-16 px-6 border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md flex items-center justify-between shrink-0 z-40">
         <div className="flex items-center gap-4">
           <Link href="/pipeline" className="text-xs font-semibold px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md transition-all">
             ← Back to Pipeline
           </Link>
           <div className="h-4 w-px bg-slate-800" />
           <div>
-            <h1 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-              <span>WarmDM Visual Workflow Builder</span>
-              <span className="text-[10px] px-2 py-0.5 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded font-semibold">ML Active</span>
+            <h1 className="text-xs font-bold text-white tracking-wider uppercase flex items-center gap-2">
+              <span>WarmDM Workflow Studio</span>
+              <span className="text-[9px] px-2 py-0.5 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded font-mono font-bold">ML Active</span>
             </h1>
             <p className="text-[11px] text-slate-400 font-medium">{activeWorkflow.name || 'Automated Outreach Workflow'}</p>
           </div>
         </div>
 
+        {/* Center Node Segmented Control Bar */}
+        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+          <button onClick={() => addNode('trigger')} className="text-xs font-semibold px-3 py-1 text-blue-400 hover:bg-blue-500/10 rounded transition-all">+ Trigger</button>
+          <button onClick={() => addNode('ml_condition')} className="text-xs font-semibold px-3 py-1 text-purple-400 hover:bg-purple-500/10 rounded transition-all">+ ML Condition</button>
+          <button onClick={() => addNode('action')} className="text-xs font-semibold px-3 py-1 text-emerald-400 hover:bg-emerald-500/10 rounded transition-all">+ Action</button>
+        </div>
+
         <div className="flex items-center gap-2.5">
-          <button onClick={() => addNode('trigger')} className="text-xs font-semibold px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-md transition-all">+ Trigger Node</button>
-          <button onClick={() => addNode('ml_condition')} className="text-xs font-semibold px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-400 rounded-md transition-all">+ ML Condition</button>
-          <button onClick={() => addNode('action')} className="text-xs font-semibold px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-md transition-all">+ Action Node</button>
-
-          <div className="h-4 w-px bg-slate-800 mx-1" />
-
           <button
             onClick={() => setShowInspector(v => !v)}
             className="text-xs font-semibold px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md transition-all"
@@ -232,7 +239,7 @@ export default function WorkflowBuilderPage() {
             {showInspector ? 'Hide Inspector ⇥' : 'Show Inspector ⇤'}
           </button>
 
-          <button onClick={saveWorkflow} disabled={saving} className="text-xs font-bold px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md shadow-sm shadow-blue-500/20 transition-all ml-1">
+          <button onClick={saveWorkflow} disabled={saving} className="text-xs font-bold px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md shadow-sm shadow-blue-500/20 transition-all">
             {saving ? 'Saving...' : 'Save & Activate Graph'}
           </button>
         </div>
@@ -262,7 +269,7 @@ export default function WorkflowBuilderPage() {
                   if (idx !== -1) handleOffsetY = 38 + idx * 22;
                 }
 
-                const x1 = (srcNode.position?.x || 0) + 208;
+                const x1 = (srcNode.position?.x || 0) + 216;
                 const y1 = (srcNode.position?.y || 0) + handleOffsetY;
                 const x2 = tgtNode.position?.x || 0;
                 const y2 = (tgtNode.position?.y || 0) + 42;
@@ -277,17 +284,18 @@ export default function WorkflowBuilderPage() {
               })}
             </svg>
 
-            {/* Nodes Rendering */}
+            {/* Structured Clean Nodes Rendering */}
             {nodes.map(node => {
               const style = NODE_TYPES[node.type] || NODE_TYPES.action;
               const isSelected = node.id === selectedNodeId;
+              const cleanLabel = sanitize(node.label);
 
               return (
                 <div
                   key={node.id}
                   onMouseDown={e => handleNodeMouseDown(e, node.id)}
                   style={{ left: `${node.position?.x || 0}px`, top: `${node.position?.y || 0}px` }}
-                  className={`workflow-node absolute w-52 rounded-lg border-2 p-3.5 shadow-xl transition-all bg-slate-900 ${style.color} ${isSelected ? 'ring-2 ring-sky-400 border-sky-400 shadow-sky-500/20' : ''}`}
+                  className={`workflow-node absolute w-54 rounded-lg border-2 p-3.5 shadow-2xl transition-all bg-slate-900/95 backdrop-blur-md ${style.color} ${isSelected ? 'ring-2 ring-sky-400 border-sky-400 shadow-sky-500/20' : ''}`}
                 >
                   {/* Input Port Dot */}
                   {node.type !== 'trigger' && (
@@ -300,14 +308,14 @@ export default function WorkflowBuilderPage() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-800">
-                    <span className="text-[11px] font-bold tracking-wider uppercase">
+                  <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-800/80">
+                    <span className="text-[10px] font-bold tracking-widest uppercase">
                       {style.label}
                     </span>
                     <span className="text-[9px] font-mono text-slate-500">ID: {node.id.slice(-4)}</span>
                   </div>
 
-                  <div className="text-xs font-bold text-white mb-1 truncate">{node.label}</div>
+                  <div className="text-xs font-bold text-white mb-1 truncate">{cleanLabel}</div>
 
                   {node.type === 'ml_condition' ? (
                     <div className="mt-2 space-y-1.5 pt-2 border-t border-purple-500/20">
@@ -349,7 +357,7 @@ export default function WorkflowBuilderPage() {
 
         {/* Collapsible Node Inspector Sidebar */}
         {showInspector && (
-          <div className="w-88 border-l border-slate-800 bg-slate-900 p-6 flex flex-col justify-between shrink-0 z-30 overflow-y-auto">
+          <div className="w-88 border-l border-slate-800/80 bg-slate-900/95 backdrop-blur-md p-6 flex flex-col justify-between shrink-0 z-30 overflow-y-auto">
             <div>
               <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Node Inspector & ML Tester</h2>
               
@@ -359,7 +367,7 @@ export default function WorkflowBuilderPage() {
                     <label className="block text-xs text-slate-400 mb-1">Node Label</label>
                     <input
                       type="text"
-                      value={selectedNode.label}
+                      value={sanitize(selectedNode.label)}
                       onChange={e => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, label: e.target.value } : n))}
                       className="w-full text-xs font-semibold bg-slate-950 border border-slate-800 rounded-md p-2.5 text-white outline-none focus:border-blue-500"
                     />
