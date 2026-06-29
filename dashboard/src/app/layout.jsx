@@ -1,7 +1,12 @@
 import Link from 'next/link';
 import './globals.css';
 
-export const metadata = { title: 'WarmDM — Cold DM & Outreach CRM' };
+export const metadata = {
+  title: 'WarmDM — Cold DM & Outreach CRM',
+  verification: {
+    google: '0P9jFajhNg3YF28Gi5NI8yJvFk-YDB7klJDQYMBJe4I',
+  },
+};
 
 function Icon({ name }) {
   const icons = {
