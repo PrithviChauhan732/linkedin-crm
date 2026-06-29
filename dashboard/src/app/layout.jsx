@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Script from 'next/script';
 import './globals.css';
 
 export const metadata = {
@@ -68,6 +69,21 @@ const NAV = [
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-6GFE01F6BS"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-6GFE01F6BS');
+          `}
+        </Script>
+      </head>
       <body className="flex h-screen bg-slate-50 text-slate-900 font-sans antialiased">
         <aside className="w-60 bg-slate-900 text-slate-300 flex flex-col shrink-0 select-none border-r border-slate-800">
           <div className="px-6 py-5 border-b border-slate-800/80">
