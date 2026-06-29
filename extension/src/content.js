@@ -52,7 +52,7 @@ const navTimer = setInterval(() => {
     campaignRunning = false; // reset guard on navigation
     onPageChange();
   }
-}, 1000);
+}, 250);
 
 // ── Page routing ──────────────────────────────────────────────────────────────
 function onPageChange() {
@@ -321,13 +321,15 @@ async function sendLinkedInMessage(text) {
 }
 
 // ── Profile Page ──────────────────────────────────────────────────────────────
+let currentProfileContact = null;
+
 function setupProfilePage() {
   document.getElementById('lcrm-badge')?.remove();
 
   const username = window.location.href.match(/linkedin\.com\/in\/([^/?#]+)/)?.[1];
   if (!username) return;
 
-  const contact = {
+  currentProfileContact = {
     name:       username,
     headline:   '',
     profileUrl: `https://www.linkedin.com/in/${username}`,
@@ -335,8 +337,8 @@ function setupProfilePage() {
     addedAt:    new Date().toISOString(),
   };
 
-  injectProfileBadge(contact);
-  enrichFromDOM(contact);
+  injectProfileBadge(currentProfileContact);
+  enrichFromDOM(currentProfileContact);
 }
 
 function findProfileName() {
@@ -348,6 +350,9 @@ function findProfileName() {
 }
 
 function enrichFromDOM(contact, attempt = 0) {
+  const currentUsername = window.location.href.match(/linkedin\.com\/in\/([^/?#]+)/)?.[1];
+  if (currentUsername !== contact.username) return; // User navigated away to a different profile
+
   const name     = findProfileName();
   const headline = (
     document.querySelector('.text-body-medium.break-words') ||
@@ -375,11 +380,17 @@ function enrichFromDOM(contact, attempt = 0) {
     contact.company  = company;
     if (location) contact.location = location;
     if (mutualConnection) contact.mutualConnection = mutualConnection;
+    currentProfileContact = contact;
+
     const badge = document.getElementById('lcrm-badge');
-    if (badge) badge.querySelector('#lcrm-name').textContent = name;
+    if (badge) {
+      badge.querySelector('#lcrm-name').textContent = name;
+    } else {
+      injectProfileBadge(contact);
+    }
     safeSend({ type: 'PROFILE_VIEWED', data: contact });
-  } else if (attempt < 20) {
-    setTimeout(() => enrichFromDOM(contact, attempt + 1), 500);
+  } else if (attempt < 25) {
+    setTimeout(() => enrichFromDOM(contact, attempt + 1), 350);
   } else {
     if (headline) {
       contact.headline = headline;
@@ -387,12 +398,13 @@ function enrichFromDOM(contact, attempt = 0) {
       if (location) contact.location = location;
       if (mutualConnection) contact.mutualConnection = mutualConnection;
     }
+    currentProfileContact = contact;
     safeSend({ type: 'PROFILE_VIEWED', data: contact });
   }
 }
 
 function injectProfileBadge(contact) {
-  if (document.getElementById('lcrm-badge')) return;
+  document.getElementById('lcrm-badge')?.remove();
 
   const badge = document.createElement('div');
   badge.id = 'lcrm-badge';
@@ -406,7 +418,9 @@ function injectProfileBadge(contact) {
     <div id="lcrm-name" style="font-weight:600">${contact.name}</div>
     <div style="opacity:.8;font-size:11px;margin-top:2px">Add to group ▸</div>
   `;
-  badge.addEventListener('click', () => safeSend({ type: 'OPEN_ADD_TO_GROUP', data: contact }));
+  badge.addEventListener('click', () => {
+    safeSend({ type: 'OPEN_ADD_TO_GROUP', data: currentProfileContact || contact });
+  });
   document.body.appendChild(badge);
 }
 
