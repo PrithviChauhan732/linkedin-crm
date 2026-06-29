@@ -1,4 +1,6 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL || 'https://linkedin-crm-y0bz.onrender.com/api';
+let rawBase = process.env.NEXT_PUBLIC_API_URL || 'https://linkedin-crm-y0bz.onrender.com/api';
+rawBase = rawBase.trim().replace(/\/+$/, '');
+const BASE = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
 
 export async function fetcher(path) {
   const res = await fetch(`${BASE}${path}`);
