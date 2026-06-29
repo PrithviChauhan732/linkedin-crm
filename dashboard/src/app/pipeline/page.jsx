@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import useSWR from 'swr';
+import Link from 'next/link';
 import { fetcher, patch, post, del } from '../../lib/api';
 
 const COLOR_OPTIONS = [
@@ -103,6 +104,13 @@ export default function PipelinePage() {
               </option>
             ))}
           </select>
+
+          <Link
+            href="/pipeline/builder"
+            className="text-xs px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg font-bold shadow-md shadow-purple-500/20 transition-all flex items-center gap-1.5"
+          >
+            <span>⚡ Visual Workflow Builder</span>
+          </Link>
 
           <button
             onClick={openEditModal}

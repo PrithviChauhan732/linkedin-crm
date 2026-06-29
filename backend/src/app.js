@@ -21,6 +21,7 @@ app.use('/api/templates', require('./routes/templates'));
 app.use('/api/campaigns', require('./routes/campaigns'));
 app.use('/api/messages',  require('./routes/messages'));
 app.use('/api/pipelines', require('./routes/pipelines'));
+app.use('/api/workflows', require('./routes/workflows'));
 
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 
