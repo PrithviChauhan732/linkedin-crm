@@ -432,16 +432,29 @@ function setupMessagingPage() {
 }
 
 function syncConversations() {
-  const items = document.querySelectorAll(SEL.convItem);
+  const items = document.querySelectorAll('.msg-conversation-listitem, .msg-conversation-card, [data-control-name="conversation_item"]');
   const conversations = [];
 
   items.forEach(item => {
-    const nameEl   = item.querySelector('.msg-conversation-listitem__link .truncate span:first-child');
-    const preview  = item.querySelector('.msg-conversation-listitem__message-snippet');
-    const time     = item.querySelector('.msg-conversation-listitem__time-stamp');
-    const isUnread = item.classList.contains('msg-conversation-listitem--unread');
-    const link     = item.querySelector('a');
+    const nameEl = item.querySelector('.msg-conversation-listitem__link .truncate span:first-child') ||
+                   item.querySelector('.msg-conversation-card__participant-names') ||
+                   item.querySelector('[class*="participant-names"]') ||
+                   item.querySelector('.truncate');
+    const preview = item.querySelector('.msg-conversation-listitem__message-snippet') ||
+                    item.querySelector('.msg-conversation-card__message-snippet') ||
+                    item.querySelector('[class*="message-snippet"]');
+    const time    = item.querySelector('.msg-conversation-listitem__time-stamp') ||
+                    item.querySelector('[class*="time-stamp"]');
+    const link    = item.querySelector('a');
     if (!nameEl) return;
+
+    const hasUnreadClass = item.classList.contains('msg-conversation-listitem--unread') ||
+                           item.classList.contains('msg-conversation-card--unread') ||
+                           item.className.includes('unread');
+    const hasUnreadBadge = !!item.querySelector('.notification-badge') ||
+                           !!item.querySelector('[class*="unread-count"]') ||
+                           !!item.querySelector('[class*="unread"]');
+    const isUnread = hasUnreadClass || hasUnreadBadge;
 
     const threadId = link?.href?.match(/thread=([^&]+)/)?.[1]
                   || link?.href?.match(/\/messaging\/thread\/([^/]+)/)?.[1]

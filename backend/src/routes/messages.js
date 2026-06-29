@@ -8,7 +8,9 @@ router.post('/sync-conversations', async (req, res) => {
   const conversations = req.body; // array of { name, preview, isUnread, threadId, profileUrl }
 
   for (const conv of conversations) {
-    // Match contact by profileUrl (full page) or by name+threadId (tray)
+    if (!conv.name && !conv.profileUrl && !conv.threadId) continue;
+
+    // Match contact by profileUrl (full page) or by threadId or by case-insensitive name
     let contact = null;
     if (conv.profileUrl) {
       contact = await Contact.findOne({ profileUrl: conv.profileUrl });
@@ -17,21 +19,34 @@ router.post('/sync-conversations', async (req, res) => {
       contact = await Contact.findOne({ threadId: conv.threadId });
     }
     if (!contact && conv.name) {
-      contact = await Contact.findOne({ name: conv.name, status: 'contacted' });
+      const cleanName = conv.name.trim();
+      contact = await Contact.findOne({
+        name: { $regex: new RegExp('^' + cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }
+      });
+      // Fallback: match by first name if exact name not found
+      if (!contact && cleanName.includes(' ')) {
+        const firstName = cleanName.split(' ')[0];
+        contact = await Contact.findOne({
+          name: { $regex: new RegExp('^' + firstName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }
+        });
+      }
     }
     if (!contact) continue;
 
-    // Detect a reply: isUnread flag OR last message isn't ours (preview from them)
-    const hasReply = conv.isUnread;
-    if (hasReply && contact.status === 'contacted') {
+    // Detect a reply: isUnread flag OR preview does not start with "You:"
+    const cleanPreview = conv.preview ? conv.preview.trim() : '';
+    const isFromThem = cleanPreview.length > 0 && !cleanPreview.startsWith('You:');
+    const hasReply = conv.isUnread || isFromThem;
+
+    if (hasReply && contact.status !== 'replied') {
       await Contact.findByIdAndUpdate(contact._id, {
         status:       'replied',
         lastReplyAt:  new Date(),
-        replyPreview: conv.preview || '',
+        replyPreview: cleanPreview,
       });
 
       await Campaign.updateMany(
-        { 'sends.contact': contact._id, 'sends.status': 'sent' },
+        { 'sends.contact': contact._id, 'sends.status': { $in: ['sent', 'pending'] } },
         {
           $inc: { 'stats.replied': 1 },
           $set: {
@@ -43,7 +58,7 @@ router.post('/sync-conversations', async (req, res) => {
       );
     }
 
-    if (conv.threadId) {
+    if (conv.threadId && !contact.threadId) {
       await Contact.findByIdAndUpdate(contact._id, { threadId: conv.threadId });
     }
   }
