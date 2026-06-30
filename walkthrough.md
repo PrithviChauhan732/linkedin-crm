@@ -18,9 +18,10 @@ I have successfully implemented all requested features to elevate your CRM pipel
 - **Sync Connections Button:** A new dark button next to "Sync Chats & ML" safely spins up a background tab, extracts your top 40 most recently accepted connections in $O(1)$ network requests, and shuts the tab down instantly without disrupting your workflow.
 - **Optimized Hash-Map Engine:** The backend processes these connections via an incredibly fast memory Hash Map engine ($O(N + M)$) to bulk-move matched prospects from `Connection Sent` directly into the `Connected` Pipeline stage.
 
-## 4. Pipeline Automation & Triggering
-- **Default Pipeline Updates:** The default pipeline schema has been updated to include stages for `Connected`, `Connection Sent`, `Manual Validation`, `Interested / Engaged`, and `Not Interested`. (To see these, simply create a new pipeline via the Dashboard UI).
-- **Campaign Triggering:** On the Pipeline Kanban board, for contacts sitting in the **Connected** stage, you can now select a campaign from a dropdown and hit "**Run**" to queue them all up for automated messaging.
+## 4. Pipeline Automation & Visual Flowchart
+- **Unified Visual Pipeline:** The complex Kanban board and ML Routing map tabs have been entirely stripped out. In their place is a gorgeous, unified, single-screen **Visual Flowchart Grid**.
+- **Embedded Interactions:** Clicking any node (e.g., "Interested") cleanly slides out a right-hand panel where you can view all prospects in that stage and manually move them if needed. 
+- **Campaign Triggering:** The "Trigger Campaign" interface is now visually baked directly into the connection flow below the `Connected` node. You simply select a campaign, hit Run, and watch the prospects visually flow down into the `Outreach Sent` node.
 - **Editable Names & Auto-Groups:** In the popup context bar, the prospect/company name is now a clickable text box. You can manually edit it before saving so your templates stay clean. Additionally, saving a company automatically creates a CRM group for it.
 
 > [!TIP]
