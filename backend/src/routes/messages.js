@@ -10,23 +10,25 @@ router.post('/sync-conversations', async (req, res) => {
   for (const conv of conversations) {
     if (!conv.name && !conv.profileUrl && !conv.threadId) continue;
 
-    // Match contact by profileUrl (full page) or by threadId or by case-insensitive name
+    // Match contact belonging to this user
     let contact = null;
     if (conv.profileUrl) {
-      contact = await Contact.findOne({ profileUrl: conv.profileUrl });
+      contact = await Contact.findOne({ profileUrl: conv.profileUrl, user: req.user.id });
     }
     if (!contact && conv.threadId) {
-      contact = await Contact.findOne({ threadId: conv.threadId });
+      contact = await Contact.findOne({ threadId: conv.threadId, user: req.user.id });
     }
     if (!contact && conv.name) {
       const cleanName = conv.name.trim();
       contact = await Contact.findOne({
+        user: req.user.id,
         name: { $regex: new RegExp('^' + cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }
       });
-      // Fallback: match by first name if exact name not found
+      // Fallback: match by first name
       if (!contact && cleanName.includes(' ')) {
         const firstName = cleanName.split(' ')[0];
         contact = await Contact.findOne({
+          user: req.user.id,
           name: { $regex: new RegExp('^' + firstName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }
         });
       }
@@ -59,7 +61,7 @@ router.post('/sync-conversations', async (req, res) => {
         console.log('[ML Service] Offline or unreached, using fallback defaults.');
       }
 
-      await Contact.findByIdAndUpdate(contact._id, {
+      await Contact.findOneAndUpdate({ _id: contact._id, user: req.user.id }, {
         status:       'replied',
         lastReplyAt:  new Date(),
         replyPreview: cleanPreview,
@@ -67,7 +69,7 @@ router.post('/sync-conversations', async (req, res) => {
       });
 
       await Campaign.updateMany(
-        { 'sends.contact': contact._id, 'sends.status': { $in: ['sent', 'pending'] } },
+        { user: req.user.id, 'sends.contact': contact._id, 'sends.status': { $in: ['sent', 'pending'] } },
         {
           $inc: { 'stats.replied': 1 },
           $set: {
@@ -80,7 +82,7 @@ router.post('/sync-conversations', async (req, res) => {
     }
 
     if (conv.threadId && !contact.threadId) {
-      await Contact.findByIdAndUpdate(contact._id, { threadId: conv.threadId });
+      await Contact.findOneAndUpdate({ _id: contact._id, user: req.user.id }, { threadId: conv.threadId });
     }
   }
 
@@ -91,7 +93,7 @@ router.post('/sync-conversations', async (req, res) => {
 router.post('/sync-thread', async (req, res) => {
   const { threadId, messages } = req.body;
 
-  const contact = await Contact.findOne({ threadId });
+  const contact = await Contact.findOne({ threadId, user: req.user.id });
   if (!contact) return res.json({ ok: true, skipped: true });
 
   for (const msg of messages) {
@@ -107,7 +109,7 @@ router.post('/sync-thread', async (req, res) => {
 
 // GET /api/messages/unread — for popup
 router.get('/unread', async (req, res) => {
-  const contacts = await Contact.find({ status: 'replied' })
+  const contacts = await Contact.find({ status: 'replied', user: req.user.id })
     .sort({ lastReplyAt: -1 })
     .limit(10)
     .select('name profileUrl lastReplyAt');
@@ -128,11 +130,12 @@ router.get('/unread', async (req, res) => {
 // GET /api/messages/stats — for popup
 router.get('/stats', async (req, res) => {
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const userContactIds = await Contact.distinct('_id', { user: req.user.id });
 
   const [sent, replied, unread] = await Promise.all([
-    Message.countDocuments({ isOwn: true, sentAt: { $gte: weekAgo } }),
-    Contact.countDocuments({ status: 'replied', lastReplyAt: { $gte: weekAgo } }),
-    Contact.countDocuments({ status: 'replied' }),
+    Message.countDocuments({ contact: { $in: userContactIds }, isOwn: true, sentAt: { $gte: weekAgo } }),
+    Contact.countDocuments({ user: req.user.id, status: 'replied', lastReplyAt: { $gte: weekAgo } }),
+    Contact.countDocuments({ user: req.user.id, status: 'replied' }),
   ]);
 
   res.json({ sent, replied, unread });
@@ -140,6 +143,9 @@ router.get('/stats', async (req, res) => {
 
 // GET /api/messages/:contactId — full thread for a contact
 router.get('/:contactId', async (req, res) => {
+  const contact = await Contact.findOne({ _id: req.params.contactId, user: req.user.id });
+  if (!contact) return res.status(403).json({ error: 'Access denied' });
+
   const messages = await Message.find({ contact: req.params.contactId }).sort({ sentAt: 1 });
   res.json({ messages });
 });

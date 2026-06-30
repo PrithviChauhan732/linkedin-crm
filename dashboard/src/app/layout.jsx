@@ -1,13 +1,8 @@
+'use client';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
 import './globals.css';
-
-export const metadata = {
-  title: 'WarmDM — Cold DM & Outreach CRM',
-  verification: {
-    google: '0P9jFajhNg3YF28Gi5NI8yJvFk-YDB7klJDQYMBJe4I',
-  },
-};
 
 function Icon({ name }) {
   const icons = {
@@ -67,6 +62,60 @@ const NAV = [
 ];
 
 export default function RootLayout({ children }) {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem('warmdm_token');
+    const savedUser = localStorage.getItem('warmdm_user');
+    const path = window.location.pathname;
+
+    if (token) {
+      setIsAuthenticated(true);
+      if (savedUser) setUser(JSON.parse(savedUser));
+      // Send token to Chrome Extension relay
+      window.postMessage({ lcrm: true, payload: { type: 'SAVE_TOKEN', token } }, '*');
+    } else {
+      setIsAuthenticated(false);
+      // Guard routes
+      if (path !== '/login' && path !== '/signup') {
+        window.location.href = '/login';
+        return;
+      }
+    }
+    setLoading(false);
+  }, []);
+
+  function handleLogout() {
+    localStorage.removeItem('warmdm_token');
+    localStorage.removeItem('warmdm_user');
+    window.postMessage({ lcrm: true, payload: { type: 'SAVE_TOKEN', token: null } }, '*');
+    window.location.href = '/login';
+  }
+
+  if (loading) {
+    return (
+      <html lang="en">
+        <body className="flex h-screen items-center justify-center bg-slate-950 text-white font-sans">
+          <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Loading WarmDM Session...</div>
+        </body>
+      </html>
+    );
+  }
+
+  // Auth screen layout
+  if (!isAuthenticated) {
+    return (
+      <html lang="en">
+        <body className="bg-slate-950 font-sans antialiased">
+          {children}
+        </body>
+      </html>
+    );
+  }
+
+  // Dashboard layout
   return (
     <html lang="en">
       <head>
@@ -101,7 +150,7 @@ export default function RootLayout({ children }) {
               <span>Cold DM Outreach Platform</span>
             </div>
           </div>
-          <nav className="flex-1 px-3 py-4 space-y-1">
+          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
             {NAV.map(item => (
               <Link
                 key={item.href}
@@ -113,6 +162,20 @@ export default function RootLayout({ children }) {
               </Link>
             ))}
           </nav>
+          
+          {/* User profile with logout option */}
+          {user && (
+            <div className="p-4 border-t border-slate-800/80 bg-slate-950/40 flex items-center justify-between text-xs">
+              <div className="truncate pr-2">
+                <div className="text-slate-400 font-semibold truncate">{user.email}</div>
+                <div className="text-[9px] text-slate-500 font-mono">User Session</div>
+              </div>
+              <button onClick={handleLogout} className="text-slate-400 hover:text-rose-400 font-bold px-2 py-1 bg-slate-850 hover:bg-rose-500/10 rounded transition-all text-[10px] uppercase tracking-wider">
+                Logout
+              </button>
+            </div>
+          )}
+
           <div className="p-4 m-3 rounded-xl bg-slate-800/60 border border-slate-800 text-[11px] text-slate-400">
             <div className="flex items-center gap-2 font-semibold text-slate-300 mb-1">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />

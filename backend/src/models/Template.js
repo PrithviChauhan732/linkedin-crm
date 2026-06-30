@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const TemplateSchema = new mongoose.Schema({
+  user:        { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   name:        { type: String, required: true },
   body:        { type: String, required: true },
   // Supported variables: {name}, {full_name}, {headline}, {company}

@@ -2,16 +2,16 @@ const router = require('express').Router();
 const Contact = require('../models/Contact');
 const Group   = require('../models/Group');
 
-// GET /api/contacts/tags — list all unique tags in use
+// GET /api/contacts/tags — list all unique tags in use for the user
 router.get('/tags', async (req, res) => {
-  const tags = await Contact.distinct('tags');
+  const tags = await Contact.distinct('tags', { user: req.user.id });
   res.json({ tags: tags.filter(Boolean).sort() });
 });
 
 // GET /api/contacts
 router.get('/', async (req, res) => {
   const { group, status, tag, search, page = 1, limit = 50 } = req.query;
-  const filter = {};
+  const filter = { user: req.user.id };
 
   if (group)  filter.groups = group;
   if (status) filter.status = status;
@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
 
 // GET /api/contacts/:id
 router.get('/:id', async (req, res) => {
-  const contact = await Contact.findById(req.params.id).populate('groups', 'name color');
+  const contact = await Contact.findOne({ _id: req.params.id, user: req.user.id }).populate('groups', 'name color');
   if (!contact) return res.status(404).json({ error: 'Not found' });
   res.json({ contact });
 });
@@ -46,7 +46,7 @@ router.get('/:id', async (req, res) => {
 router.post('/upsert', async (req, res) => {
   const { profileUrl, name, headline, company, username, email, phone, location, website, mutualConnection, recentPostTopic } = req.body;
 
-  // Normalize name: prefer display name from DOM; fall back to humanizing the slug
+  // Normalize name
   const normalizedName = (name && name !== username)
     ? name
     : username
@@ -54,7 +54,7 @@ router.post('/upsert', async (req, res) => {
         .map(w => w.charAt(0).toUpperCase() + w.slice(1))
         .join(' ') || name;
 
-  const updateData = { name: normalizedName, headline, company, username };
+  const updateData = { name: normalizedName, headline, company, username, user: req.user.id };
   if (email) updateData.email = email;
   if (phone) updateData.phone = phone;
   if (location) updateData.location = location;
@@ -63,7 +63,7 @@ router.post('/upsert', async (req, res) => {
   if (recentPostTopic) updateData.recentPostTopic = recentPostTopic;
 
   const contact = await Contact.findOneAndUpdate(
-    { profileUrl },
+    { profileUrl, user: req.user.id },
     { $set: updateData },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
@@ -73,7 +73,7 @@ router.post('/upsert', async (req, res) => {
 
 // POST /api/contacts
 router.post('/', async (req, res) => {
-  const contact = await Contact.create(req.body);
+  const contact = await Contact.create({ ...req.body, user: req.user.id });
   res.status(201).json({ contact });
 });
 
@@ -83,7 +83,7 @@ router.patch('/:id', async (req, res) => {
   const update  = Object.fromEntries(
     Object.entries(req.body).filter(([k]) => allowed.includes(k))
   );
-  const contact = await Contact.findByIdAndUpdate(req.params.id, update, { new: true })
+  const contact = await Contact.findOneAndUpdate({ _id: req.params.id, user: req.user.id }, update, { new: true })
     .populate('groups', 'name color');
   res.json({ contact });
 });
@@ -91,8 +91,8 @@ router.patch('/:id', async (req, res) => {
 // POST /api/contacts/:id/tags — add a tag
 router.post('/:id/tags', async (req, res) => {
   const { tag } = req.body;
-  const contact = await Contact.findByIdAndUpdate(
-    req.params.id,
+  const contact = await Contact.findOneAndUpdate(
+    { _id: req.params.id, user: req.user.id },
     { $addToSet: { tags: tag } },
     { new: true }
   ).populate('groups', 'name color');
@@ -101,8 +101,8 @@ router.post('/:id/tags', async (req, res) => {
 
 // DELETE /api/contacts/:id/tags/:tag — remove a tag
 router.delete('/:id/tags/:tag', async (req, res) => {
-  const contact = await Contact.findByIdAndUpdate(
-    req.params.id,
+  const contact = await Contact.findOneAndUpdate(
+    { _id: req.params.id, user: req.user.id },
     { $pull: { tags: req.params.tag } },
     { new: true }
   ).populate('groups', 'name color');
@@ -112,9 +112,14 @@ router.delete('/:id/tags/:tag', async (req, res) => {
 // POST /api/contacts/:id/add-to-group
 router.post('/:id/add-to-group', async (req, res) => {
   const { groupId } = req.body;
+  
+  // Verify group belongs to user
+  const group = await Group.findOne({ _id: groupId, user: req.user.id });
+  if (!group) return res.status(403).json({ error: 'Access denied to group' });
+
   const [contact] = await Promise.all([
-    Contact.findByIdAndUpdate(
-      req.params.id,
+    Contact.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
       { $addToSet: { groups: groupId } },
       { new: true }
     ).populate('groups', 'name color'),
@@ -127,8 +132,8 @@ router.post('/:id/add-to-group', async (req, res) => {
 router.post('/:id/remove-from-group', async (req, res) => {
   const { groupId } = req.body;
   const [contact] = await Promise.all([
-    Contact.findByIdAndUpdate(
-      req.params.id,
+    Contact.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
       { $pull: { groups: groupId } },
       { new: true }
     ).populate('groups', 'name color'),
@@ -139,7 +144,7 @@ router.post('/:id/remove-from-group', async (req, res) => {
 
 // DELETE /api/contacts/:id
 router.delete('/:id', async (req, res) => {
-  await Contact.findByIdAndDelete(req.params.id);
+  await Contact.findOneAndDelete({ _id: req.params.id, user: req.user.id });
   res.json({ ok: true });
 });
 

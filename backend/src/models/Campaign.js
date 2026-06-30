@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const CampaignSchema = new mongoose.Schema({
+  user:       { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   name:       { type: String, required: true },
   group:      { type: mongoose.Schema.Types.ObjectId, ref: 'Group' },
   template:   { type: mongoose.Schema.Types.ObjectId, ref: 'Template' },

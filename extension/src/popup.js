@@ -1,7 +1,12 @@
 const API_BASE = 'https://linkedin-crm-y0bz.onrender.com/api';
 
 async function api(path) {
-  const res = await fetch(`${API_BASE}${path}`);
+  const { token } = await chrome.storage.local.get('token');
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_BASE}${path}`, { headers });
   return res.json();
 }
 

@@ -14,14 +14,19 @@ app.use(cors({
 app.options('*', cors());
 app.use(express.json());
 
+const authMiddleware = require('./middleware/authMiddleware');
+
 // Routes
-app.use('/api/contacts',  require('./routes/contacts'));
-app.use('/api/groups',    require('./routes/groups'));
-app.use('/api/templates', require('./routes/templates'));
-app.use('/api/campaigns', require('./routes/campaigns'));
-app.use('/api/messages',  require('./routes/messages'));
-app.use('/api/pipelines', require('./routes/pipelines'));
-app.use('/api/workflows', require('./routes/workflows'));
+app.use('/api/auth',      require('./routes/auth'));
+
+// Protected Routes
+app.use('/api/contacts',  authMiddleware, require('./routes/contacts'));
+app.use('/api/groups',    authMiddleware, require('./routes/groups'));
+app.use('/api/templates', authMiddleware, require('./routes/templates'));
+app.use('/api/campaigns', authMiddleware, require('./routes/campaigns'));
+app.use('/api/messages',  authMiddleware, require('./routes/messages'));
+app.use('/api/pipelines', authMiddleware, require('./routes/pipelines'));
+app.use('/api/workflows', authMiddleware, require('./routes/workflows'));
 
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 

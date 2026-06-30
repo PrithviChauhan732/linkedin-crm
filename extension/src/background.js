@@ -83,6 +83,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       sendResponse({ ok: true });
       break;
 
+    case 'SAVE_TOKEN':
+      chrome.storage.local.set({ token: msg.token }, () => {
+        sendResponse({ ok: true });
+      });
+      return true;
+
     case 'FORWARD_TO_CONTENT': {
       const payload = msg.payload;
       if (payload.type === 'START_CAMPAIGN') {
@@ -184,9 +190,14 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 async function syncToBackend(path, data) {
+  const { token } = await chrome.storage.local.get('token');
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   const res = await fetch(`${API_BASE}${path}`, {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body:    JSON.stringify(data),
   });
   if (!res.ok) throw new Error(`Backend ${res.status}`);

@@ -16,9 +16,9 @@ const DEFAULT_EDGES = [
   { id: 'e2-5', source: 'node_2', target: 'node_5', sourceHandle: 'referral' },
 ];
 
-// GET /api/workflows — List all workflows (seeds clean default if none exist)
+// GET /api/workflows — List all workflows (seeds default per user if none exist)
 router.get('/', async (req, res) => {
-  let workflows = await Workflow.find().sort({ createdAt: 1 });
+  let workflows = await Workflow.find({ user: req.user.id }).sort({ createdAt: 1 });
   if (workflows.length === 0) {
     const defaultWf = await Workflow.create({
       name: 'Smart ML Intent Routing Workflow',
@@ -26,6 +26,7 @@ router.get('/', async (req, res) => {
       active: true,
       nodes: DEFAULT_NODES,
       edges: DEFAULT_EDGES,
+      user: req.user.id,
     });
     workflows = [defaultWf];
   }
@@ -40,19 +41,20 @@ router.post('/', async (req, res) => {
     description: description || '',
     nodes: nodes || DEFAULT_NODES,
     edges: edges || DEFAULT_EDGES,
+    user: req.user.id,
   });
   res.status(201).json({ workflow });
 });
 
 // PATCH /api/workflows/:id — Update graph nodes/edges/active
 router.patch('/:id', async (req, res) => {
-  const workflow = await Workflow.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  const workflow = await Workflow.findOneAndUpdate({ _id: req.params.id, user: req.user.id }, req.body, { new: true });
   res.json({ workflow });
 });
 
 // DELETE /api/workflows/:id
 router.delete('/:id', async (req, res) => {
-  await Workflow.findByIdAndDelete(req.params.id);
+  await Workflow.findOneAndDelete({ _id: req.params.id, user: req.user.id });
   res.json({ ok: true });
 });
 

@@ -8,6 +8,7 @@ const StageSchema = new mongoose.Schema({
 });
 
 const PipelineSchema = new mongoose.Schema({
+  user:        { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   name:        { type: String, required: true },
   description: { type: String },
   isDefault:   { type: Boolean, default: false },
