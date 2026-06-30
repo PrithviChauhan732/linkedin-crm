@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WarmDM — Cold DM & Outreach CRM",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Turn cold LinkedIn DMs into warm leads, track responses, and run outreach campaigns",
   "permissions": ["storage", "alarms", "notifications", "tabs"],
   "host_permissions": ["https://www.linkedin.com/*", "https://*.vercel.app/*", "https://linkedin-crm-y0bz.onrender.com/*", "http://localhost:3000/*", "http://localhost:4000/*"],

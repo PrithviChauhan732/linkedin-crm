@@ -255,6 +255,20 @@ function scrapeVisiblePeople() {
     if (!cards.length) continue;
 
     cards.forEach(card => {
+      // 1. Ignore cards inside the sidebar or right rail
+      if (card.closest('aside, .aside, .org-sidebar, .right-rail, [data-view-name*="viewed"]')) {
+        return;
+      }
+
+      // 2. Get the primary link of the card (either the title link or the very first link)
+      const primaryLinkEl = card.querySelector('.artdeco-entity-lockup__title a, .org-people-profile-card__profile-title a, a');
+      if (!primaryLinkEl) return;
+
+      const href = primaryLinkEl.getAttribute('href') || '';
+      // Ensure the primary link is actually a personal profile link (/in/)
+      const isProfileLink = href.includes('/in/') || href.includes('linkedin.com/in/');
+      if (!isProfileLink) return;
+
       const nameEl = card.querySelector(
         '.artdeco-entity-lockup__title span[aria-hidden="true"],' +
         '.org-people-profile-card__profile-title,' +
@@ -267,14 +281,13 @@ function scrapeVisiblePeople() {
         '.artdeco-entity-lockup__subtitle,' +
         'span[data-anonymize="title"]'
       );
-      const linkEl = card.querySelector('a[href*="linkedin.com/in/"], a[href^="/in/"]');
 
       const name = nameEl?.textContent?.trim();
       if (!name || name.length < 2) return;
 
-      const profileUrl = linkEl?.href
-        ? (linkEl.href.startsWith('http') ? linkEl.href : `https://www.linkedin.com${linkEl.href}`)
-        : '';
+      const profileUrl = primaryLinkEl.href.startsWith('http')
+        ? primaryLinkEl.href
+        : `https://www.linkedin.com${primaryLinkEl.href}`;
 
       people.push({
         name,
