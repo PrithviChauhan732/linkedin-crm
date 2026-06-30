@@ -12,8 +12,41 @@ export default function SignupPage() {
   useEffect(() => {
     if (localStorage.getItem('warmdm_token')) {
       window.location.href = '/';
+      return;
     }
+
+    const initGoogle = () => {
+      if (typeof window !== 'undefined' && window.google) {
+        window.google.accounts.id.initialize({
+          client_id: '610897476416-ahmu34m9v9ek4sq719a1f7fkdok8j7sg.apps.googleusercontent.com',
+          callback: handleGoogleLoginResponse,
+        });
+        window.google.accounts.id.renderButton(
+          document.getElementById('google-signup-btn'),
+          { theme: 'filled_black', size: 'large', width: '382', text: 'signup_with' }
+        );
+      } else {
+        setTimeout(initGoogle, 100);
+      }
+    };
+    initGoogle();
   }, []);
+
+  async function handleGoogleLoginResponse(googleResponse) {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await post('/auth/google', { idToken: googleResponse.credential });
+      localStorage.setItem('warmdm_token', data.token);
+      localStorage.setItem('warmdm_user', JSON.stringify(data.user));
+      window.postMessage({ lcrm: true, payload: { type: 'SAVE_TOKEN', token: data.token } }, '*');
+      window.location.href = '/';
+    } catch (err) {
+      setError(err.message || 'Google authentication failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -98,6 +131,19 @@ export default function SignupPage() {
             {loading ? 'Registering...' : 'Get Started'}
           </button>
         </form>
+
+        {/* Divider */}
+        <div className="relative my-6 z-10 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-800"></div>
+          </div>
+          <span className="relative px-3 text-[10px] uppercase font-bold text-slate-500 bg-slate-900 tracking-wider">or continue with</span>
+        </div>
+
+        {/* Google signup container */}
+        <div className="relative z-10 flex justify-center w-full">
+          <div id="google-signup-btn" className="w-full flex justify-center"></div>
+        </div>
 
         <div className="mt-8 text-center text-xs text-slate-500 relative z-10 font-medium">
           Already have an account?{' '}

@@ -108,6 +108,9 @@ export default function RootLayout({ children }) {
   if (!isAuthenticated) {
     return (
       <html lang="en">
+        <head>
+          <script src="https://accounts.google.com/gsi/client" async defer></script>
+        </head>
         <body className="bg-slate-950 font-sans antialiased">
           {children}
         </body>
