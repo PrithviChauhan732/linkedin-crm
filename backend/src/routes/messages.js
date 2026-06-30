@@ -155,4 +155,25 @@ router.get('/:contactId', async (req, res) => {
   res.json({ messages });
 });
 
+// POST /api/messages/test-ml — proxy for playground
+router.post('/test-ml', async (req, res) => {
+  const { text } = req.body;
+  try {
+    const mlUrl = process.env.ML_SERVICE_URL || 'http://localhost:8000/predict';
+    const mlRes = await fetch(mlUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text || 'Hi' }),
+    });
+    if (mlRes.ok) {
+      const data = await mlRes.json();
+      return res.json(data);
+    } else {
+      return res.status(mlRes.status).json({ error: 'ML Service returned an error' });
+    }
+  } catch (err) {
+    return res.status(503).json({ error: 'ML Service offline' });
+  }
+});
+
 module.exports = router;

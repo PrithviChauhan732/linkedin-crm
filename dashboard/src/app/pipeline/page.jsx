@@ -74,17 +74,11 @@ export default function PipelinePage() {
     setIsTestingMl(true);
     setMlTestResult(null);
     try {
-      // Connect to local python fastapi
-      const res = await fetch('http://localhost:8000/predict', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: mlTestInput }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setMlTestResult(data);
+      const res = await post('/messages/test-ml', { text: mlTestInput });
+      if (res.error) {
+        setMlTestResult({ error: res.error });
       } else {
-        setMlTestResult({ error: 'Engine unreachable' });
+        setMlTestResult(res);
       }
     } catch (e) {
       setMlTestResult({ error: 'Engine offline' });
