@@ -252,8 +252,10 @@ function scrapeVisiblePeople() {
     '.artdeco-entity-lockup',
   ];
 
+  const mainContainer = document.querySelector('.scaffold-layout__main') || document.querySelector('main') || document;
+
   for (const sel of cardSelectors) {
-    const cards = document.querySelectorAll(sel);
+    const cards = mainContainer.querySelectorAll(sel);
     if (!cards.length) continue;
 
     cards.forEach(card => {
@@ -262,13 +264,16 @@ function scrapeVisiblePeople() {
         return;
       }
 
-      // 2. Get the primary link of the card (either the title link or the very first link)
-      const primaryLinkEl = card.querySelector('.artdeco-entity-lockup__title a, .org-people-profile-card__profile-title a, a');
+      // 2. Get the primary link of the card, strictly ensuring it's a person's profile
+      const primaryLinkEl = card.querySelector(
+        '.artdeco-entity-lockup__title a[href*="/in/"], ' +
+        '.org-people-profile-card__profile-title a[href*="/in/"], ' +
+        'a.app-aware-link[href*="/in/"]'
+      );
       if (!primaryLinkEl) return;
 
       const href = primaryLinkEl.getAttribute('href') || '';
-      // Ensure the primary link is actually a personal profile link (/in/)
-      const isProfileLink = href.includes('/in/') || href.includes('linkedin.com/in/');
+      const isProfileLink = href.includes('/in/') && !href.includes('/company/');
       if (!isProfileLink) return;
 
       const nameEl = card.querySelector(
