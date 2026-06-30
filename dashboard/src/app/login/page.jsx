@@ -140,6 +140,13 @@ export default function LoginPage() {
             Create an Account
           </a>
         </div>
+
+        {/* Footer Strip */}
+        <div className="mt-6 border-t border-slate-800/60 pt-4 text-center text-[10px] text-slate-500 relative z-10 flex justify-center gap-3">
+          <a href="/privacy" className="hover:text-slate-400 transition-colors">Privacy Policy</a>
+          <span>•</span>
+          <a href="/terms" className="hover:text-slate-400 transition-colors">Terms of Service</a>
+        </div>
       </div>
     </div>
   );

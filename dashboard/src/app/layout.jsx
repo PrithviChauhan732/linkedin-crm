@@ -63,6 +63,7 @@ const NAV = [
 
 export default function RootLayout({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -70,6 +71,12 @@ export default function RootLayout({ children }) {
     const token = localStorage.getItem('warmdm_token');
     const savedUser = localStorage.getItem('warmdm_user');
     const path = window.location.pathname;
+    const publicPaths = ['/login', '/signup', '/terms', '/privacy'];
+    const isPublicPath = publicPaths.includes(path);
+
+    if (isPublicPath) {
+      setIsPublic(true);
+    }
 
     if (token) {
       setIsAuthenticated(true);
@@ -79,7 +86,7 @@ export default function RootLayout({ children }) {
     } else {
       setIsAuthenticated(false);
       // Guard routes
-      if (path !== '/login' && path !== '/signup') {
+      if (!isPublicPath) {
         window.location.href = '/login';
         return;
       }
@@ -104,8 +111,8 @@ export default function RootLayout({ children }) {
     );
   }
 
-  // Auth screen layout
-  if (!isAuthenticated) {
+  // Auth screen layout or public pages
+  if (!isAuthenticated || isPublic) {
     return (
       <html lang="en">
         <head>
