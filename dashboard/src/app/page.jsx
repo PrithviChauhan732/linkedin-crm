@@ -1,9 +1,128 @@
 'use client';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
 import { fetcher } from '../lib/api';
 
-export default function OverviewPage() {
+export default function RootPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loadingSession, setLoadingSession] = useState(true);
+
+  useEffect(() => {
+    if (localStorage.getItem('warmdm_token')) {
+      setIsLoggedIn(true);
+    }
+    setLoadingSession(false);
+  }, []);
+
+  if (loadingSession) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center font-sans">
+        <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Loading Session...</div>
+      </div>
+    );
+  }
+
+  return isLoggedIn ? <OverviewDashboard /> : <PublicLandingPage />;
+}
+
+/* ── 1. PUBLIC MARKETING HOMEPAGE (Google Verification Compliant) ────────────────── */
+function PublicLandingPage() {
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between select-none font-sans">
+      {/* Navbar Header */}
+      <header className="h-20 border-b border-slate-800/80 bg-slate-900/40 px-8 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xl font-black tracking-tight text-white">Warm</span>
+          <div className="flex items-center gap-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-2.5 py-0.5 rounded-full text-xs font-bold shadow-sm shadow-blue-500/20 tracking-wider">
+            <span>DM</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <Link href="/login" className="text-xs font-bold text-slate-400 hover:text-white transition-colors uppercase tracking-wider">
+            Sign In
+          </Link>
+          <Link href="/signup" className="text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl transition-all shadow-lg shadow-blue-500/10">
+            Get Started Free
+          </Link>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <main className="max-w-5xl mx-auto px-6 py-20 flex-1 flex flex-col items-center justify-center text-center relative overflow-hidden">
+        {/* Decorative Blur Backgrounds */}
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 max-w-3xl space-y-6">
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
+            Prioritize and Automate Your <br />
+            <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">LinkedIn Outreach Pipeline</span>
+          </h1>
+          <p className="text-slate-400 text-sm md:text-base leading-relaxed max-w-2xl mx-auto font-medium">
+            WarmDM is a multi-tenant LinkedIn CRM and outreach platform. Connect our lightweight Chrome Extension to sync conversations, track leads across stages, and use our Python-powered Machine Learning Classifier to route replies based on intent.
+          </p>
+
+          <div className="pt-4 flex flex-col sm:flex-row justify-center gap-4">
+            <Link href="/signup" className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl uppercase tracking-wider shadow-lg shadow-blue-500/15 transition-all">
+              Create Free Account
+            </Link>
+            <Link href="/login" className="px-8 py-4 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-bold rounded-xl uppercase tracking-wider transition-all">
+              Sign In to Dashboard
+            </Link>
+          </div>
+        </div>
+
+        {/* Feature Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mt-24 relative z-10">
+          {[
+            {
+              title: "LinkedIn CRM Sync",
+              desc: "Import prospects directly into your visual workspace. Maintain isolated tables, tags, and groups for every outreach segment.",
+              color: "border-blue-500/20 bg-blue-500/5 text-blue-400"
+            },
+            {
+              title: "ML Intent Routing",
+              desc: "Our SkPipeline model categorizes replies based on intent classes (interested, form requests, objections, inquiries) with sub-10ms latency.",
+              color: "border-purple-500/20 bg-purple-500/5 text-purple-400"
+            },
+            {
+              title: "Outreach Campaigns",
+              desc: "Run personalized campaign queues via extension triggers. Track sent logs, reply rates, and pipeline conversions dynamically.",
+              color: "border-emerald-500/20 bg-emerald-500/5 text-emerald-400"
+            }
+          ].map(feat => (
+            <div key={feat.title} className={`border p-6 rounded-2xl text-left ${feat.color}`}>
+              <h3 className="text-sm font-bold text-white mb-2 uppercase tracking-wider">{feat.title}</h3>
+              <p className="text-slate-400 text-xs leading-relaxed font-medium">{feat.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Identity & Scope Verification Section */}
+        <div className="w-full mt-20 p-8 border border-slate-800 bg-slate-900/60 rounded-2xl text-left relative z-10">
+          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-2">Google OAuth Identity & Data Usage Disclosure</h3>
+          <p className="text-slate-400 text-xs leading-relaxed font-medium">
+            WarmDM supports Google Sign-In via Google Identity Services for secure login and onboarding. We verify and store your primary email address for user authentication purposes only, isolating your CRM records and campaign data to your personal account. WarmDM does not access, read, store, or share any of your unrelated Google profile data, search history, or personal services. All access is restricted to the test users listed on our OAuth consent configuration.
+          </p>
+        </div>
+      </main>
+
+      {/* Footer Strip */}
+      <footer className="h-16 border-t border-slate-800/80 bg-slate-900/20 px-8 flex items-center justify-between text-xs text-slate-500">
+        <div>&copy; 2026 WarmDM. All rights reserved.</div>
+        <div className="flex gap-4">
+          <Link href="/privacy" className="hover:text-slate-400 transition-colors">Privacy Policy</Link>
+          <span>•</span>
+          <Link href="/terms" className="hover:text-slate-400 transition-colors">Terms of Service</Link>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+/* ── 2. LOGGED-IN CRM DASHBOARD OVERVIEW ─────────────────────────────────────────── */
+function OverviewDashboard() {
   const { data: contactsData } = useSWR('/contacts?limit=200', fetcher, { refreshInterval: 15000 });
   const { data: campaignsData } = useSWR('/campaigns', fetcher, { refreshInterval: 15000 });
   const { data: stats } = useSWR('/messages/stats', fetcher, { refreshInterval: 30000 });

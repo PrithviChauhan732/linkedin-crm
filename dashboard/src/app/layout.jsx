@@ -71,10 +71,11 @@ export default function RootLayout({ children }) {
     const token = localStorage.getItem('warmdm_token');
     const savedUser = localStorage.getItem('warmdm_user');
     const path = window.location.pathname;
-    const publicPaths = ['/login', '/signup', '/terms', '/privacy'];
+    const publicPaths = ['/login', '/signup', '/terms', '/privacy', '/'];
+    const alwaysPublicPaths = ['/terms', '/privacy', '/login', '/signup'];
     const isPublicPath = publicPaths.includes(path);
 
-    if (isPublicPath) {
+    if (alwaysPublicPaths.includes(path)) {
       setIsPublic(true);
     }
 
@@ -89,6 +90,9 @@ export default function RootLayout({ children }) {
       if (!isPublicPath) {
         window.location.href = '/login';
         return;
+      }
+      if (path === '/') {
+        setIsPublic(true);
       }
     }
     setLoading(false);
