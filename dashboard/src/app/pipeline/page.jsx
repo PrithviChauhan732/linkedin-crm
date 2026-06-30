@@ -134,6 +134,25 @@ export default function PipelinePage() {
     mutateContacts();
   }
 
+  const { data: campaignData } = useSWR('/campaigns', fetcher);
+  const campaigns = campaignData?.campaigns || [];
+
+  async function executeCampaign(contactIds) {
+    const campaignId = document.getElementById('run-campaign-select')?.value;
+    if (!campaignId) return alert('Select a campaign first');
+    
+    // Call build-queue with specific contact IDs
+    const res = await post(`/campaigns/${campaignId}/build-queue`, { contactIds });
+    if (res.queue) {
+      alert(`Queued ${res.queue.length} contacts! Open the extension to start sending.`);
+      // Optionally move them to 'contacted' status locally to update UI immediately
+      contactIds.forEach(id => {
+        patch(`/contacts/${id}`, { status: 'contacted' });
+      });
+      setTimeout(mutateContacts, 1000);
+    }
+  }
+
   return (
     <div className="flex flex-col h-full overflow-hidden font-sans">
 
@@ -259,6 +278,25 @@ export default function PipelinePage() {
                     {stageContacts.length === 0 && (
                       <div className="py-12 text-center text-[11px] font-medium text-slate-400 border border-dashed border-slate-300 rounded-lg bg-white/50">
                         No leads in this stage
+                      </div>
+                    )}
+                    
+                    {/* Trigger Campaign for Connected Stage */}
+                    {stage.id === 'connected' && stageContacts.length > 0 && (
+                      <div className="mt-2 pt-3 border-t border-slate-200">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Trigger Campaign</label>
+                        <div className="flex gap-1.5">
+                          <select id="run-campaign-select" className="flex-1 text-[11px] bg-white border border-slate-300 rounded outline-none p-1.5">
+                            <option value="">-- Select --</option>
+                            {campaigns.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                          </select>
+                          <button 
+                            onClick={() => executeCampaign(stageContacts.map(c => c._id))}
+                            className="text-[11px] bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 rounded shadow-xs transition-colors"
+                          >
+                            Run
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

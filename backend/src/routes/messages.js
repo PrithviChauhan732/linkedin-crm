@@ -40,9 +40,9 @@ router.post('/sync-conversations', async (req, res) => {
     const isFromThem = cleanPreview.length > 0 && !cleanPreview.startsWith('You:');
     const hasReply = conv.isUnread || isFromThem;
 
-    if (hasReply && contact.status !== 'replied') {
+    if (hasReply && contact.status !== 'replied' && !['meeting_scheduled', 'qualified', 'closed_won'].includes(contact.status)) {
       let mlTag = '#Reply';
-      let mlIntent = 'replied';
+      let newStatus = 'replied';
 
       // Call Python ML Microservice for Intent Classification
       try {
@@ -55,14 +55,19 @@ router.post('/sync-conversations', async (req, res) => {
         if (mlRes.ok) {
           const mlData = await mlRes.json();
           if (mlData.recommended_tag) mlTag = mlData.recommended_tag;
-          if (mlData.intent) mlIntent = mlData.intent;
+          if (mlData.confidence !== undefined && mlData.confidence < 0.70) {
+            newStatus = 'manual_validation';
+            mlTag = '#NeedsReview';
+          } else if (mlData.recommended_stage) {
+            newStatus = mlData.recommended_stage;
+          }
         }
       } catch (err) {
         console.log('[ML Service] Offline or unreached, using fallback defaults.');
       }
 
       await Contact.findOneAndUpdate({ _id: contact._id, user: req.user.id }, {
-        status:       'replied',
+        status:       newStatus,
         lastReplyAt:  new Date(),
         replyPreview: cleanPreview,
         $addToSet:    { tags: mlTag }

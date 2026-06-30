@@ -19,7 +19,13 @@ const ContactSchema = new mongoose.Schema({
   notes:      { type: String },
   status: {
     type: String,
-    enum: ['new', 'contacted', 'replied', 'not_replied', 'meeting_scheduled', 'qualified', 'closed_won', 'converted', 'archived'],
+    enum: [
+      'new', 'connection_sent', 'connected', 'contacted',
+      'replied', 'not_replied',
+      'manual_validation', 'interested', 'not_interested',
+      'meeting_scheduled', 'qualified', 'closed_won', 'converted', 'archived',
+      'ooo', 'referral', 'question', 'form_request'
+    ],
     default: 'new',
   },
   lastMessageAt:  { type: Date },

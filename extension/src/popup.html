@@ -26,11 +26,17 @@
     #context-bar.visible { display: flex; }
     .context-info { min-width: 0; flex: 1; }
     .context-type { font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
-    .context-name { font-size: 13px; font-weight: 700; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .context-name { font-size: 13px; font-weight: 700; color: #f1f5f9; background: transparent; border: 1px dashed transparent; width: 100%; outline: none; margin-bottom: 2px; }
+    .context-name:hover, .context-name:focus { border-color: #475569; background: #0f172a; border-radius: 4px; padding: 2px; margin-left: -2px; }
     .context-sub  { font-size: 10px; color: #94a3b8; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .save-row { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+    
+    .status-badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-top: 4px; background: #334155; color: #cbd5e1; text-transform: uppercase; }
+    .status-badge.connected { background: #065f46; color: #34d399; }
+    .status-badge.connection_sent { background: #78350f; color: #fbbf24; }
+    
+    .save-row { display: flex; gap: 6px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
     .group-select {
-      flex: 1; background: #0f172a; border: 1px solid #334155; border-radius: 7px;
+      flex: 1; min-width: 120px; background: #0f172a; border: 1px solid #334155; border-radius: 7px;
       padding: 6px 8px; color: #e2e8f0; font-size: 11px; outline: none; cursor: pointer;
     }
     .save-btn {
@@ -40,7 +46,11 @@
     }
     .save-btn:hover { background: #1d4ed8; }
     .save-btn.saved { background: #059669; }
-    #context-save-status { font-size: 10px; color: #22d3ee; height: 12px; margin-top: 4px; }
+    
+    .action-btn { background: #334155; border: none; border-radius: 7px; padding: 6px 12px; color: #f1f5f9; font-size: 10px; font-weight: 600; cursor: pointer; }
+    .action-btn:hover { background: #475569; }
+    
+    #context-save-status { font-size: 10px; color: #22d3ee; height: 12px; margin-top: 4px; width: 100%; }
 
     /* ── Tabs ── */
     .tabs { display: flex; background: #0f172a; border-bottom: 1px solid #1e293b; }
@@ -157,14 +167,18 @@
   <!-- Context Bar — shown when on a profile or company page -->
   <div id="context-bar">
     <div class="context-info" style="width:100%">
-      <div class="context-type" id="ctx-type">Profile</div>
-      <div class="context-name" id="ctx-name">—</div>
-      <div class="context-sub"  id="ctx-sub"></div>
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div class="context-type" id="ctx-type">Profile</div>
+        <div id="ctx-conn-status" class="status-badge" style="display:none;"></div>
+      </div>
+      <input type="text" class="context-name" id="ctx-name" value="" />
+      <div class="context-sub" id="ctx-sub"></div>
       <div class="save-row">
         <select class="group-select" id="ctx-group-select">
           <option value="">— Select Group —</option>
         </select>
         <button class="save-btn" id="ctx-save-btn">Save</button>
+        <button class="action-btn" id="ctx-connect-btn" style="display:none;">Set Connected</button>
       </div>
       <div id="context-save-status"></div>
     </div>
@@ -188,7 +202,11 @@
       </div>
     </div>
     <div class="section">
-      <div class="section-label">Unread Conversations</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div class="section-label" style="margin:0">Unread Conversations</div>
+        <button id="sync-ml-btn" class="action-btn" style="padding:4px 8px; font-size:9px;">Sync Chats & ML</button>
+      </div>
+      <div id="sync-ml-status" style="font-size:9px; color:#34d399; margin-bottom:8px; display:none; text-align:right;"></div>
       <div class="unread-list" id="unread-list">
         <div style="font-size:11px;color:#475569;text-align:center;padding:16px">Loading...</div>
       </div>

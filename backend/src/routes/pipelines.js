@@ -3,11 +3,14 @@ const Pipeline = require('../models/Pipeline');
 
 const DEFAULT_STAGES = [
   { id: 'new',               label: 'Lead / New',           color: 'border-t-slate-400 bg-slate-100/40', order: 0 },
-  { id: 'contacted',         label: 'Outreach Sent',        color: 'border-t-blue-500 bg-blue-50/30',     order: 1 },
-  { id: 'replied',           label: 'Engaged / Replied',     color: 'border-t-emerald-500 bg-emerald-50/30', order: 2 },
-  { id: 'meeting_scheduled', label: 'Meeting Scheduled',   color: 'border-t-amber-500 bg-amber-50/30',   order: 3 },
-  { id: 'qualified',         label: 'Qualified Opportunity', color: 'border-t-purple-500 bg-purple-50/30', order: 4 },
-  { id: 'closed_won',        label: 'Closed / Won',         color: 'border-t-indigo-600 bg-indigo-50/40', order: 5 },
+  { id: 'connection_sent',   label: 'Connection Sent',      color: 'border-t-amber-500 bg-amber-50/30',   order: 1 },
+  { id: 'connected',         label: 'Connected',            color: 'border-t-teal-500 bg-teal-50/30',     order: 2 },
+  { id: 'contacted',         label: 'Outreach Sent',        color: 'border-t-blue-500 bg-blue-50/30',     order: 3 },
+  { id: 'manual_validation', label: 'Manual Validation',    color: 'border-t-purple-500 bg-purple-50/30', order: 4 },
+  { id: 'interested',        label: 'Interested / Engaged', color: 'border-t-emerald-500 bg-emerald-50/30', order: 5 },
+  { id: 'not_interested',    label: 'Not Interested',       color: 'border-t-rose-500 bg-rose-50/30',     order: 6 },
+  { id: 'meeting_scheduled', label: 'Meeting Scheduled',    color: 'border-t-amber-500 bg-amber-50/30',   order: 7 },
+  { id: 'closed_won',        label: 'Closed / Won',         color: 'border-t-indigo-600 bg-indigo-50/40', order: 8 },
 ];
 
 // GET /api/pipelines — List all pipelines (seeds default per user if none exist)

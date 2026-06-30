@@ -708,6 +708,29 @@ function findProfileName() {
   return '';
 }
 
+function getConnectionStatus() {
+  const dist = document.querySelector('.dist-value, .pv-member-badge__distance')?.textContent?.trim() || '';
+  if (dist.includes('1st')) return 'connected';
+  
+  const buttons = Array.from(document.querySelectorAll('button, a'));
+  const btnTexts = buttons.map(b => b.textContent?.trim()?.toLowerCase());
+  const ariaLabels = buttons.map(b => b.getAttribute('aria-label')?.toLowerCase() || '');
+  
+  const hasPending = btnTexts.includes('pending') || ariaLabels.some(a => a.includes('pending'));
+  if (hasPending) return 'connection_sent';
+
+  if (dist.includes('2nd') || dist.includes('3rd') || btnTexts.includes('connect') || ariaLabels.some(a => a.includes('connect'))) {
+    return 'new';
+  }
+
+  // If "Message" is primary and no "Connect", likely connected
+  if (btnTexts.includes('message') || ariaLabels.some(a => a.includes('message'))) {
+    return 'connected';
+  }
+
+  return 'new';
+}
+
 function enrichFromDOM(contact, attempt = 0) {
   const currentUsername = window.location.href.match(/linkedin\.com\/in\/([^/?#]+)/)?.[1];
   if (currentUsername !== contact.username) return;
@@ -716,42 +739,117 @@ function enrichFromDOM(contact, attempt = 0) {
   const headline = (document.querySelector('.text-body-medium.break-words') || document.querySelector('[data-anonymize="person-tagline"]'))?.textContent?.trim() || '';
   const company  = (document.querySelector('.pv-text-details__right-panel .text-body-medium') || document.querySelector('[aria-label*="Current company"]'))?.textContent?.trim() || '';
   const location = (document.querySelector('.pv-text-details__left-panel .text-body-small.inline') || document.querySelector('[data-anonymize="location"]'))?.textContent?.trim() || '';
+  const connectionStatus = getConnectionStatus();
 
   if (name) {
-    contact.name = name; contact.headline = headline; contact.company = company;
+    contact.name = name; contact.headline = headline; contact.company = company; contact.connectionStatus = connectionStatus;
     if (location) contact.location = location;
     currentProfileContact = contact;
     const badge = document.getElementById('lcrm-badge');
-    if (badge) badge.querySelector('#lcrm-name').textContent = name;
-    else injectProfileBadge(contact);
+    if (badge) {
+      const nameEl = badge.querySelector('#lcrm-name');
+      if (nameEl) nameEl.textContent = name;
+    } else {
+      injectProfileBadge(contact);
+    }
     safeSend({ type: 'PROFILE_VIEWED', data: contact });
   } else if (attempt < 25) {
     setTimeout(() => enrichFromDOM(contact, attempt + 1), 350);
   } else {
-    if (headline) { contact.headline = headline; contact.company = company; if (location) contact.location = location; }
+    if (headline) { contact.headline = headline; contact.company = company; contact.connectionStatus = connectionStatus; if (location) contact.location = location; }
     currentProfileContact = contact;
     safeSend({ type: 'PROFILE_VIEWED', data: contact });
   }
 }
 
-function injectProfileBadge(contact) {
+async function injectProfileBadge(contact) {
   document.getElementById('lcrm-badge')?.remove();
+  
+  let campaigns = [];
+  let groups    = [];
+  try {
+    const { token } = await new Promise(r => chrome.storage.local.get('token', r));
+    if (token) {
+      const [cRes, gRes] = await Promise.all([
+        fetch(`${API_BASE}/campaigns`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/groups`,    { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      campaigns = (await cRes.json()).campaigns || [];
+      groups    = (await gRes.json()).groups    || [];
+    }
+  } catch {}
+
   const badge = document.createElement('div');
   badge.id = 'lcrm-badge';
   badge.style.cssText = `
     position:fixed;bottom:24px;right:24px;z-index:2147483647;
-    background:#0a66c2;color:white;border-radius:8px;
-    padding:10px 16px;font-family:-apple-system,sans-serif;font-size:13px;
-    box-shadow:0 4px 12px rgba(0,0,0,.3);cursor:pointer;min-width:160px;
+    background:#0a0f1e;border:1px solid #1e293b;border-radius:12px;
+    padding:16px;font-family:-apple-system,sans-serif;font-size:13px;
+    box-shadow:0 8px 32px rgba(0,0,0,.5);width:280px;color:#e2e8f0;
   `;
+  
+  const campaignOptions = campaigns.map(c => `<option value="${c._id}">${c.name}</option>`).join('');
+  const groupOptions    = groups.map(g => {
+    // Auto-select if company name matches group name
+    const selected = (contact.company && g.name.toLowerCase() === contact.company.toLowerCase()) ? 'selected' : '';
+    return `<option value="${g._id}" ${selected}>${g.name}</option>`;
+  }).join('');
+
   badge.innerHTML = `
-    <div id="lcrm-name" style="font-weight:600">${contact.name}</div>
-    <div style="opacity:.8;font-size:11px;margin-top:2px;">Add to group &rsaquo;</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div id="lcrm-name" style="font-weight:700;font-size:14px;color:#f8fafc;">${contact.name}</div>
+      <button id="lcrm-badge-close" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:16px;">✕</button>
+    </div>
+    
+    <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px;display:block;">Group</label>
+    <select id="lcrm-badge-group" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px;color:#e2e8f0;font-size:12px;margin-bottom:12px;outline:none;">
+      <option value="">— No Group —</option>
+      ${groupOptions}
+    </select>
+
+    <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px;display:block;">Campaign</label>
+    <select id="lcrm-badge-campaign" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px;color:#e2e8f0;font-size:12px;margin-bottom:12px;outline:none;">
+      <option value="">— No Campaign —</option>
+      ${campaignOptions}
+    </select>
+
+    <div id="lcrm-badge-status" style="font-size:11px;color:#22d3ee;text-align:center;margin-bottom:8px;min-height:14px;"></div>
+    <button id="lcrm-badge-save" style="width:100%;background:#2563eb;border:none;border-radius:6px;padding:8px;color:white;font-weight:600;cursor:pointer;">
+      Save to CRM
+    </button>
   `;
-  badge.addEventListener('click', () => {
-    safeSend({ type: 'OPEN_ADD_TO_GROUP', data: currentProfileContact || contact });
-  });
+
   document.body.appendChild(badge);
+
+  badge.querySelector('#lcrm-badge-close').onclick = () => badge.remove();
+  badge.querySelector('#lcrm-badge-save').onclick = () => {
+    const groupId = badge.querySelector('#lcrm-badge-group').value;
+    const campaignId = badge.querySelector('#lcrm-badge-campaign').value;
+    const statusEl = badge.querySelector('#lcrm-badge-status');
+    const btn = badge.querySelector('#lcrm-badge-save');
+    
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    
+    // Determine status to send
+    const dataToSend = { ...currentProfileContact, status: currentProfileContact.connectionStatus || 'new' };
+    
+    safeSend({ type: 'ADD_PEOPLE_TO_CRM', data: {
+      people: [dataToSend],
+      groupId: groupId || null,
+      campaignId: campaignId || null
+    }}, res => {
+      if (res?.ok) {
+        statusEl.textContent = '✓ Saved successfully!';
+        btn.textContent = '✓ Saved';
+        setTimeout(() => badge.remove(), 2000);
+      } else {
+        statusEl.textContent = res?.error || 'Failed to save';
+        btn.textContent = 'Retry';
+        btn.disabled = false;
+      }
+    });
+  };
 }
 
 // ── Messaging Page ────────────────────────────────────────────────────────────

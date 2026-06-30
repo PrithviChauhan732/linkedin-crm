@@ -79,14 +79,31 @@ function showContextBar(type, name, sub, data) {
   currentContext = { type, name, sub, data };
   const bar = document.getElementById('context-bar');
   document.getElementById('ctx-type').textContent = type === 'company' ? '🏢 Company Page' : '👤 Profile Page';
-  document.getElementById('ctx-name').textContent = name;
+  document.getElementById('ctx-name').value = name;
   document.getElementById('ctx-sub').textContent  = sub || '';
   document.getElementById('ctx-sub').style.display = sub ? 'block' : 'none';
+  
+  const statusEl = document.getElementById('ctx-conn-status');
+  const connectBtn = document.getElementById('ctx-connect-btn');
+  if (type === 'profile' && data.connectionStatus) {
+    statusEl.style.display = 'inline-block';
+    statusEl.className = 'status-badge ' + data.connectionStatus;
+    statusEl.textContent = data.connectionStatus.replace('_', ' ');
+    if (data.connectionStatus === 'connected') {
+      connectBtn.style.display = 'none';
+    } else {
+      connectBtn.style.display = 'block';
+    }
+  } else {
+    statusEl.style.display = 'none';
+    connectBtn.style.display = 'none';
+  }
+
   bar.classList.add('visible');
-  populateGroupSelect('ctx-group-select');
+  populateGroupSelect('ctx-group-select', type === 'profile' ? data.company : '');
 }
 
-function populateGroupSelect(selectId) {
+function populateGroupSelect(selectId, autoSelectName = '') {
   const sel = document.getElementById(selectId);
   // Remove all except first option
   while (sel.options.length > 1) sel.remove(1);
@@ -94,9 +111,38 @@ function populateGroupSelect(selectId) {
     const opt = document.createElement('option');
     opt.value = g._id;
     opt.textContent = g.name;
+    if (autoSelectName && g.name.toLowerCase() === autoSelectName.toLowerCase()) {
+      opt.selected = true;
+    }
     sel.appendChild(opt);
   });
 }
+
+// Update Connected Status
+document.getElementById('ctx-connect-btn').addEventListener('click', async () => {
+  if (!currentContext || currentContext.type !== 'profile') return;
+  const statusEl = document.getElementById('context-save-status');
+  const btn = document.getElementById('ctx-connect-btn');
+  
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+  
+  try {
+    const updatedData = { ...currentContext.data, name: document.getElementById('ctx-name').value, status: 'connected' };
+    const groupId  = document.getElementById('ctx-group-select').value || null;
+    await apiPost('/contacts/upsert', { ...updatedData, groups: groupId ? [groupId] : [] });
+    
+    document.getElementById('ctx-conn-status').className = 'status-badge connected';
+    document.getElementById('ctx-conn-status').textContent = 'connected';
+    btn.style.display = 'none';
+    statusEl.textContent = '✓ Updated CRM to Connected!';
+    setTimeout(() => { statusEl.textContent = ''; }, 2500);
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = 'Set Connected';
+    statusEl.textContent = 'Failed to update.';
+  }
+});
 
 // Save context to CRM
 document.getElementById('ctx-save-btn').addEventListener('click', async () => {
@@ -104,15 +150,17 @@ document.getElementById('ctx-save-btn').addEventListener('click', async () => {
   const groupId  = document.getElementById('ctx-group-select').value || null;
   const statusEl = document.getElementById('context-save-status');
   const btn      = document.getElementById('ctx-save-btn');
+  const customName = document.getElementById('ctx-name').value;
 
   btn.disabled = true;
   btn.textContent = '...';
 
   try {
     if (currentContext.type === 'company') {
-      await apiPost('/companies/upsert', { ...currentContext.data, groupId });
+      await apiPost('/companies/upsert', { ...currentContext.data, name: customName, groupId });
     } else {
-      await apiPost('/contacts/upsert', { ...currentContext.data, groups: groupId ? [groupId] : [] });
+      const connStatus = currentContext.data.connectionStatus || 'new';
+      await apiPost('/contacts/upsert', { ...currentContext.data, name: customName, status: connStatus, groups: groupId ? [groupId] : [] });
     }
     statusEl.textContent = '✓ Saved to CRM!';
     btn.textContent = '✓';
@@ -274,6 +322,41 @@ async function loadUnread() {
     });
   } catch {}
 }
+
+document.getElementById('sync-ml-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('sync-ml-btn');
+  const status = document.getElementById('sync-ml-status');
+  btn.disabled = true;
+  btn.textContent = 'Syncing...';
+  
+  try {
+    const tabs = await chrome.tabs.query({ url: 'https://www.linkedin.com/*' });
+    if (!tabs[0]) {
+      status.style.display = 'block';
+      status.style.color = '#f87171';
+      status.textContent = 'Open LinkedIn first.';
+      setTimeout(() => status.style.display = 'none', 3000);
+      btn.disabled = false;
+      btn.textContent = 'Sync Chats & ML';
+      return;
+    }
+    
+    // Trigger GET_CONVERSATIONS in content script, which routes to backend automatically
+    chrome.tabs.sendMessage(tabs[0].id, { type: 'GET_CONVERSATIONS' }, () => {});
+    
+    status.style.display = 'block';
+    status.style.color = '#34d399';
+    status.textContent = '✓ Sync triggered!';
+    setTimeout(() => {
+      status.style.display = 'none';
+      btn.disabled = false;
+      btn.textContent = 'Sync Chats & ML';
+    }, 2000);
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = 'Sync Chats & ML';
+  }
+});
 
 // ── Send message ──────────────────────────────────────────────────────────────
 document.getElementById('send-btn').addEventListener('click', async () => {

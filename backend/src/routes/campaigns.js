@@ -28,13 +28,22 @@ router.post('/', async (req, res) => {
 
 // POST /api/campaigns/:id/build-queue — returns the send queue for the extension
 router.post('/:id/build-queue', async (req, res) => {
+  const { contactIds } = req.body;
   const campaign = await Campaign.findOne({ _id: req.params.id, user: req.user.id })
-    .populate('template')
-    .populate({ path: 'group', populate: { path: 'contacts' } });
+    .populate('template');
 
   if (!campaign) return res.status(404).json({ error: 'Not found' });
 
-  const contacts = campaign.group?.contacts || [];
+  let contacts = [];
+  if (contactIds && contactIds.length > 0) {
+    contacts = await Contact.find({ _id: { $in: contactIds }, user: req.user.id });
+  } else {
+    // Fallback to old group-based queueing
+    const campaignWithGroup = await Campaign.findOne({ _id: req.params.id, user: req.user.id })
+      .populate({ path: 'group', populate: { path: 'contacts' } });
+    contacts = campaignWithGroup.group?.contacts || [];
+  }
+
   const queue = contacts.map(contact => ({
     contactId:  contact._id,
     campaignId: campaign._id,

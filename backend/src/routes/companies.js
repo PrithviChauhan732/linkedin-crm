@@ -20,8 +20,19 @@ router.get('/', async (req, res) => {
 // POST /api/companies/upsert — create or update by linkedinUrl
 router.post('/upsert', async (req, res) => {
   try {
-    const { linkedinUrl, name, industry, size, location, description, website, groupId } = req.body;
+    const { linkedinUrl, name, industry, size, location, description, website } = req.body;
+    let { groupId } = req.body;
     if (!linkedinUrl || !name) return res.status(400).json({ error: 'linkedinUrl and name are required' });
+
+    // Auto-create or fetch Group matching the company name if no groupId provided
+    if (!groupId) {
+      const Group = require('../models/Group');
+      let group = await Group.findOne({ user: req.user.id, name: name.trim() });
+      if (!group) {
+        group = await Group.create({ user: req.user.id, name: name.trim(), color: '#0f766e' }); // Teal for auto-companies
+      }
+      groupId = group._id;
+    }
 
     const update = {
       user: req.user.id,
