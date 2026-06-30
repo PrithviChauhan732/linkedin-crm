@@ -3,8 +3,16 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const rateLimit = require('express-rate-limit');
+
 const app = express();
 
+// Secure Express headers with Helmet
+app.use(helmet());
+
+// Enable CORS
 app.use(cors({
   origin: true,
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
@@ -12,7 +20,31 @@ app.use(cors({
   credentials: true,
 }));
 app.options('*', cors());
+
+// Rate Limiting Config
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // limit each IP to 300 requests per windowMs
+  message: { error: 'Too many requests from this IP, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // stricter limit on authentication endpoints
+  message: { error: 'Too many login or registration attempts, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/api/', apiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/signup', authLimiter);
+
+// JSON Body Parser & NoSQL Injection Protection
 app.use(express.json());
+app.use(mongoSanitize());
 
 const authMiddleware = require('./middleware/authMiddleware');
 

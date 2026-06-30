@@ -193,6 +193,13 @@ export default function RootLayout({ children }) {
             </div>
             LinkedIn sync connected
           </div>
+
+          {/* Permanent Sidebar Footer Strip */}
+          <div className="px-6 py-4 border-t border-slate-850 flex items-center justify-between text-[10px] text-slate-500 shrink-0 select-none">
+            <Link href="/privacy" className="hover:text-slate-350 transition-colors">Privacy Policy</Link>
+            <span>•</span>
+            <Link href="/terms" className="hover:text-slate-350 transition-colors">Terms of Service</Link>
+          </div>
         </aside>
 
         <main className="flex-1 overflow-y-auto flex flex-col bg-slate-50">
