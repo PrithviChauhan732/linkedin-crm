@@ -20,9 +20,10 @@ I have successfully implemented all requested features to elevate your CRM pipel
 
 ## 4. Pipeline Automation & Visual Flowchart
 - **Unified Visual Pipeline:** The complex Kanban board and ML Routing map tabs have been entirely stripped out. In their place is a gorgeous, unified, single-screen **Visual Flowchart Grid**.
-- **Embedded Interactions:** Clicking any node (e.g., "Interested") cleanly slides out a right-hand panel where you can view all prospects in that stage and manually move them if needed. 
-- **Campaign Triggering:** The "Trigger Campaign" interface is now visually baked directly into the connection flow below the `Connected` node. You simply select a campaign, hit Run, and watch the prospects visually flow down into the `Outreach Sent` node.
-- **Editable Names & Auto-Groups:** In the popup context bar, the prospect/company name is now a clickable text box. You can manually edit it before saving so your templates stay clean. Additionally, saving a company automatically creates a CRM group for it.
+- **Interactive ML Playground:** The central `ML Intent Engine` node is now fully interactive! Clicking it slides out a dark-mode testing playground where you can paste mock replies and instantly test the sub-10ms Python ML model (seeing its confidence score, intent class, and tag).
+- **Exact ML Output Alignment:** The final stages of the flowchart exactly mirror the 7 classes emitted by the ML model (`Interested`, `Form Request`, `Not Hiring`, `Not Interested`, `Referral`, `Question`, `OOO`). Beneath each node, a visual "+ Add Step" placeholder exists for adding follow-up nodes.
+- **Embedded Interactions & Pipeline Save:** You can create and save unlimited custom pipelines via the top dropdown. Selecting a pipeline binds this exact flowchart to it. Clicking any end-node (e.g., "Interested") cleanly slides out a right-hand panel where you can view all prospects in that stage and manually move them.
+- **Campaign Triggering:** The "Trigger Campaign" interface is visually baked directly into the connection flow below the `Connected` node. Select a campaign, hit Run, and watch the prospects visually flow down into the `Outreach Sent` node.
 
 > [!TIP]
 > The extension zip file has been updated. You can upload `warmdm-extension.zip` to your Chrome extensions page and reload it to experience the new inline widget and connection syncing!
