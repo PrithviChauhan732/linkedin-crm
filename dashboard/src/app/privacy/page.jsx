@@ -2,8 +2,8 @@
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between py-12 px-6 select-none font-sans">
-      <div className="max-w-3xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
+    <div className="h-screen overflow-y-auto bg-slate-950 text-slate-100 flex flex-col py-12 px-6 font-sans">
+      <div className="max-w-3xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl relative">
         {/* Decorative Grid Gradients */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
