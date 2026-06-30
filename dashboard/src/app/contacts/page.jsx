@@ -97,6 +97,20 @@ export default function ContactsPage() {
     if (selected?._id === id) setSelected(null);
   }
 
+  async function addToGroup(contactId, groupId) {
+    if (!groupId) return;
+    const { contact } = await post(`/contacts/${contactId}/add-to-group`, { groupId });
+    mutate();
+    if (selected?._id === contactId) setSelected(contact);
+  }
+
+  async function removeFromGroup(contactId, groupId) {
+    if (!groupId) return;
+    const { contact } = await post(`/contacts/${contactId}/remove-from-group`, { groupId });
+    mutate();
+    if (selected?._id === contactId) setSelected(contact);
+  }
+
   async function openDetail(c) {
     const res = await fetcher(`/contacts/${c._id}`);
     setSelected(res.contact);
@@ -264,6 +278,8 @@ export default function ContactsPage() {
           onNotesChange={updateNotes}
           onAddTag={addTag}
           onRemoveTag={removeTag}
+          onAddGroup={addToGroup}
+          onRemoveGroup={removeFromGroup}
           onDelete={deleteContact}
         />
       )}
@@ -272,11 +288,12 @@ export default function ContactsPage() {
 }
 
 /* ── Detail slide-over panel ─────────────────────────────────────────────── */
-function DetailPanel({ contact, groups, allTags, onClose, onStatusChange, onNotesChange, onAddTag, onRemoveTag, onDelete }) {
+function DetailPanel({ contact, groups, allTags, onClose, onStatusChange, onNotesChange, onAddTag, onRemoveTag, onAddGroup, onRemoveGroup, onDelete }) {
   const [notes, setNotes]         = useState(contact.notes || '');
   const [notesDirty, setNotesDirty] = useState(false);
   const [tagInput, setTagInput]   = useState('');
   const [showTagInput, setShowTagInput] = useState(false);
+  const [showGroupInput, setShowGroupInput] = useState(false);
 
   // Sync notes when contact changes
   if (notes !== (contact.notes || '') && !notesDirty) {
@@ -378,19 +395,50 @@ function DetailPanel({ contact, groups, allTags, onClose, onStatusChange, onNote
         </div>
 
         {/* Groups */}
-        {c.groups?.length > 0 && (
-          <div>
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Groups</span>
-            <div className="flex flex-wrap gap-1.5">
-              {c.groups.map(g => (
-                <span key={g._id} className="text-xs px-2 py-0.5 rounded-full text-white"
-                  style={{ background: g.color }}>
-                  {g.name}
-                </span>
-              ))}
-            </div>
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Groups</span>
+            <button onClick={() => setShowGroupInput(!showGroupInput)}
+              className="text-xs text-blue-600 hover:text-blue-700">
+              + Add
+            </button>
           </div>
-        )}
+          <div className="flex flex-wrap gap-1.5">
+            {c.groups?.length > 0 ? c.groups.map(g => (
+              <span key={g._id} className="text-xs px-2 py-0.5 rounded-full text-white flex items-center gap-1 group"
+                style={{ background: g.color || '#4f46e5' }}>
+                {g.name}
+                <button onClick={() => onRemoveGroup(c._id, g._id)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-white/80 hover:text-white leading-none font-bold ml-0.5">
+                  ×
+                </button>
+              </span>
+            )) : <span className="text-xs text-gray-400">No groups</span>}
+          </div>
+          {showGroupInput && (
+            <div className="mt-2">
+              <select
+                onChange={async e => {
+                  if (e.target.value) {
+                    await onAddGroup(c._id, e.target.value);
+                    setShowGroupInput(false);
+                  }
+                }}
+                className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none bg-white cursor-pointer"
+                defaultValue=""
+              >
+                <option value="">Select group to add...</option>
+                {groups
+                  .filter(g => !c.groups?.some(cg => cg._id === g._id))
+                  .map(g => (
+                    <option key={g._id} value={g._id}>
+                      {g.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          )}
+        </div>
 
         {/* Timeline */}
         <div>

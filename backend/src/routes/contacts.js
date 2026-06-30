@@ -117,8 +117,22 @@ router.post('/:id/add-to-group', async (req, res) => {
       req.params.id,
       { $addToSet: { groups: groupId } },
       { new: true }
-    ),
+    ).populate('groups', 'name color'),
     Group.findByIdAndUpdate(groupId, { $addToSet: { contacts: req.params.id } }),
+  ]);
+  res.json({ contact });
+});
+
+// POST /api/contacts/:id/remove-from-group
+router.post('/:id/remove-from-group', async (req, res) => {
+  const { groupId } = req.body;
+  const [contact] = await Promise.all([
+    Contact.findByIdAndUpdate(
+      req.params.id,
+      { $pull: { groups: groupId } },
+      { new: true }
+    ).populate('groups', 'name color'),
+    Group.findByIdAndUpdate(groupId, { $pull: { contacts: req.params.id } }),
   ]);
   res.json({ contact });
 });
