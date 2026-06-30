@@ -558,6 +558,21 @@ function syncConversationsFromTray() {
 // ── Message Handler ───────────────────────────────────────────────────────────
 function handleMessage(msg, _sender, sendResponse) {
   switch (msg.type) {
+    case 'GET_PAGE_CONTEXT': {
+      const path = window.location.pathname;
+      const companySlug = path.match(/\/company\/([^/?#]+)/)?.[1];
+      if (companySlug) {
+        const nameEl = document.querySelector('h1.org-top-card-summary__title, .org-top-card-primary-content__title, main h1');
+        const subEl  = document.querySelector('.org-top-card-summary-info-list__info-item');
+        sendResponse({ name: nameEl?.textContent?.trim() || companySlug, sub: subEl?.textContent?.trim() || '' });
+      } else if (currentProfileContact?.name) {
+        sendResponse({ name: currentProfileContact.name, sub: currentProfileContact.headline || '', ...currentProfileContact });
+      } else {
+        sendResponse({ name: '', sub: '' });
+      }
+      break;
+    }
+
     case 'EXECUTE_CAMPAIGN_SEND':
       if (campaignRunning) { sendResponse({ ok: true, skipped: 'already running' }); break; }
       campaignRunning = true;
