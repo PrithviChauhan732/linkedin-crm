@@ -1,8 +1,4 @@
-- `[x]` Backend: Update Contact Model (`status` enum with `connection_sent`, `connected`, `manual_validation`, `interested`, `not_interested`, `ooo`).
-- `[x]` Backend: Auto-create Company Groups in `companies.upsert`.
-- `[x]` Backend: Refine ML Intent routing in `messages.sync-conversations` (confidence < 0.70 -> `manual_validation`).
-- `[x]` Extension: Scrape Connection Status in `content.js`.
-- `[x]` Extension: Implement Inline Profile Saving widget (replacing the badge redirect) in `content.js`.
-- `[x]` Extension: Update `popup.js` (Editable name field, Connection Status UI, "Update to Connected", "Sync & ML" button, Auto-group pre-selection).
-- `[x]` Dashboard: Redesign `/pipeline` board (columns for Connected, Manual Validation, Interested, etc.).
-- `[x]` Dashboard: Implement Campaign Trigger from "Connected" stage in Pipeline.
+- `[x]` Backend: Add `POST /api/contacts/sync-connections` endpoint with Hash Map reconciliation.
+- `[x]` Extension: Add "Sync Connections" button in `popup.html`.
+- `[x]` Extension: Implement background tab creation and scraping orchestration in `popup.js` / `background.js`.
+- `[x]` Extension: Add connection DOM scraping logic to `content.js` (`GET_CONNECTIONS`).

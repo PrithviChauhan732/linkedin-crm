@@ -13,7 +13,12 @@ I have successfully implemented all requested features to elevate your CRM pipel
   - If the model's confidence is `< 0.70`, the prospect is routed to the `manual_validation` stage (meaning their reply was ambiguous).
   - Otherwise, they are routed to the specific CRM stage predicted by the ML (e.g., `interested`, `not_interested`, `ooo`).
 
-## 3. Pipeline Automation & Triggering
+## 3. Bulk Connections Sync (New!)
+- **Automated Re-conciliation:** You no longer need to check individual profiles to see if they've accepted your connection request.
+- **Sync Connections Button:** A new dark button next to "Sync Chats & ML" safely spins up a background tab, extracts your top 40 most recently accepted connections in $O(1)$ network requests, and shuts the tab down instantly without disrupting your workflow.
+- **Optimized Hash-Map Engine:** The backend processes these connections via an incredibly fast memory Hash Map engine ($O(N + M)$) to bulk-move matched prospects from `Connection Sent` directly into the `Connected` Pipeline stage.
+
+## 4. Pipeline Automation & Triggering
 - **Default Pipeline Updates:** The default pipeline schema has been updated to include stages for `Connected`, `Connection Sent`, `Manual Validation`, `Interested / Engaged`, and `Not Interested`. (To see these, simply create a new pipeline via the Dashboard UI).
 - **Campaign Triggering:** On the Pipeline Kanban board, for contacts sitting in the **Connected** stage, you can now select a campaign from a dropdown and hit "**Run**" to queue them all up for automated messaging.
 - **Editable Names & Auto-Groups:** In the popup context bar, the prospect/company name is now a clickable text box. You can manually edit it before saving so your templates stay clean. Additionally, saving a company automatically creates a CRM group for it.

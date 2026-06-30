@@ -75,6 +75,8 @@ function onPageChange() {
     setTimeout(setupCompanyPage, 1200);
   } else if (path.startsWith('/in/')) {
     setupProfilePage();
+  } else if (path === '/mynetwork/invite-connect/connections/') {
+    setTimeout(scrapeConnectionsPage, 2000);
   }
 
   watchForMessagingTray();
@@ -931,4 +933,62 @@ function waitForElementAsync(selector, timeout = 15000) {
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// ── Connections Sync ──────────────────────────────────────────────────────────
+async function scrapeConnectionsPage() {
+  // Wait a bit for the list to render
+  await sleep(2000);
+  
+  // Scroll down slightly to ensure connections load
+  window.scrollTo(0, document.body.scrollHeight / 2);
+  await sleep(1500);
+
+  const cards = document.querySelectorAll('.mn-connection-card');
+  const connections = [];
+
+  cards.forEach(card => {
+    const link = card.querySelector('a[href^="/in/"]');
+    if (!link) return;
+    
+    const nameEl = card.querySelector('.mn-connection-card__name') || link.querySelector('.visually-hidden') || link;
+    const name = nameEl.textContent.trim().replace('Member’s name', '').trim();
+    const timeEl = card.querySelector('time');
+    
+    connections.push({
+      name,
+      profileUrl: link.href,
+      time: timeEl ? timeEl.textContent.trim() : ''
+    });
+  });
+
+  // Also try generic links if cards aren't found (LinkedIn A/B testing)
+  if (connections.length === 0) {
+    const links = document.querySelectorAll('li a[href^="/in/"]');
+    links.forEach(link => {
+      const name = link.textContent.trim();
+      if (name && name.split(' ').length > 1) { // Basic filter to avoid non-name links
+        connections.push({
+          name,
+          profileUrl: link.href
+        });
+      }
+    });
+  }
+
+  // Deduplicate by URL
+  const uniqueConns = [];
+  const seenUrls = new Set();
+  connections.forEach(c => {
+    const url = c.profileUrl.split('?')[0];
+    if (!seenUrls.has(url)) {
+      seenUrls.add(url);
+      uniqueConns.push(c);
+    }
+  });
+
+  console.log('[WarmDM] Scraped connections:', uniqueConns.length);
+  
+  // Send back to background script to sync
+  chrome.runtime.sendMessage({ type: 'SYNC_CONNECTIONS_DATA', data: uniqueConns });
 }

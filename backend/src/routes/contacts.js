@@ -42,6 +42,53 @@ router.get('/:id', async (req, res) => {
   res.json({ contact });
 });
 
+// POST /api/contacts/sync-connections — Bulk sync using Hash Map
+router.post('/sync-connections', async (req, res) => {
+  try {
+    const { connections } = req.body; // array of { profileUrl, name, time }
+    if (!connections || !connections.length) {
+      return res.json({ ok: true, updated: 0 });
+    }
+
+    // 1. Build a Hash Map of scraped profile URLs (O(M))
+    const connectionMap = new Map();
+    for (const c of connections) {
+      if (c.profileUrl) {
+        // Normalize URL to remove query parameters and trailing slashes
+        const normalizedUrl = c.profileUrl.split('?')[0].replace(/\/$/, '');
+        connectionMap.set(normalizedUrl, true);
+      }
+    }
+
+    // 2. Query all contacts currently in 'connection_sent' stage (O(1) DB roundtrip)
+    const pendingContacts = await Contact.find({ user: req.user.id, status: 'connection_sent' });
+
+    // 3. Reconcile in O(N)
+    const newlyConnectedIds = [];
+    for (const contact of pendingContacts) {
+      if (contact.profileUrl) {
+        const normalizedUrl = contact.profileUrl.split('?')[0].replace(/\/$/, '');
+        if (connectionMap.has(normalizedUrl)) {
+          newlyConnectedIds.push(contact._id);
+        }
+      }
+    }
+
+    // 4. Bulk Update matching contacts
+    if (newlyConnectedIds.length > 0) {
+      await Contact.updateMany(
+        { _id: { $in: newlyConnectedIds } },
+        { $set: { status: 'connected', updatedAt: new Date() } }
+      );
+    }
+
+    res.json({ ok: true, updated: newlyConnectedIds.length });
+  } catch (err) {
+    console.error('[Sync Connections Error]', err);
+    res.status(500).json({ error: 'Failed to sync connections' });
+  }
+});
+
 // POST /api/contacts/upsert — called by extension when a profile is viewed
 router.post('/upsert', async (req, res) => {
   const { profileUrl, name, headline, company, username, email, phone, location, website, mutualConnection, recentPostTopic } = req.body;

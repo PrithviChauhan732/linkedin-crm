@@ -204,7 +204,10 @@
     <div class="section">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <div class="section-label" style="margin:0">Unread Conversations</div>
-        <button id="sync-ml-btn" class="action-btn" style="padding:4px 8px; font-size:9px;">Sync Chats & ML</button>
+        <div style="display:flex;gap:4px;">
+          <button id="sync-conn-btn" class="action-btn" style="padding:4px 8px; font-size:9px; background:#475569; color:white; border:none; border-radius:4px; font-weight:600; cursor:pointer;">Sync Connections</button>
+          <button id="sync-ml-btn" class="action-btn" style="padding:4px 8px; font-size:9px;">Sync Chats & ML</button>
+        </div>
       </div>
       <div id="sync-ml-status" style="font-size:9px; color:#34d399; margin-bottom:8px; display:none; text-align:right;"></div>
       <div class="unread-list" id="unread-list">

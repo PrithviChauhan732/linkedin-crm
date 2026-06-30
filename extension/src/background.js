@@ -80,6 +80,27 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         .catch(e => sendResponse({ error: e.message }));
       return true;
 
+    case 'TRIGGER_CONNECTIONS_SYNC':
+      // Open connections page in background tab, scrape, and close
+      chrome.tabs.create({ url: 'https://www.linkedin.com/mynetwork/invite-connect/connections/', active: false }, tab => {
+        // We'll let the content script run when it loads. 
+        // We can just listen for the response from the injected content script.
+        sendResponse({ ok: true, tabId: tab.id });
+      });
+      return true;
+      
+    case 'SYNC_CONNECTIONS_DATA':
+      syncToBackend('/contacts/sync-connections', { connections: msg.data })
+        .then(res => {
+          if (_sender && _sender.tab) chrome.tabs.remove(_sender.tab.id); // close the background tab
+          sendResponse({ ok: true, updated: res.updated });
+        })
+        .catch(e => {
+          if (_sender && _sender.tab) chrome.tabs.remove(_sender.tab.id);
+          sendResponse({ error: e.message });
+        });
+      return true;
+
     case 'CAMPAIGN_MESSAGE_RESULT':
       handleCampaignResult(msg.contactId, msg.campaignId, msg.result)
         .then(() => sendResponse({ ok: true }));

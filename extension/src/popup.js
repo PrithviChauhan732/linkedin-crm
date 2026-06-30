@@ -323,6 +323,29 @@ async function loadUnread() {
   } catch {}
 }
 
+document.getElementById('sync-conn-btn').addEventListener('click', () => {
+  const btn = document.getElementById('sync-conn-btn');
+  const status = document.getElementById('sync-ml-status');
+  btn.disabled = true;
+  btn.textContent = 'Syncing...';
+  
+  chrome.runtime.sendMessage({ type: 'TRIGGER_CONNECTIONS_SYNC' }, res => {
+    if (res?.ok) {
+      status.style.display = 'block';
+      status.style.color = '#34d399';
+      status.textContent = '✓ Syncing in background...';
+      setTimeout(() => {
+        status.style.display = 'none';
+        btn.disabled = false;
+        btn.textContent = 'Sync Connections';
+      }, 3000);
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Sync Connections';
+    }
+  });
+});
+
 document.getElementById('sync-ml-btn').addEventListener('click', async () => {
   const btn = document.getElementById('sync-ml-btn');
   const status = document.getElementById('sync-ml-status');
