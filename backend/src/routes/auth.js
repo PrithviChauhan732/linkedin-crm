@@ -6,7 +6,7 @@ const User = require('../models/User');
 const authMiddleware = require('../middleware/authMiddleware');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'warmdm-secret-key-12345';
-const GOOGLE_CLIENT_ID = '610897476416-ahmu34m9v9ek4sq719a1f7fkdok8j7sg.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '610897476416-ahmu34m9v9ek4sq719a1f7fkdok8j7sg.apps.googleusercontent.com';
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 // POST /api/auth/google

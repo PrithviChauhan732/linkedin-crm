@@ -19,7 +19,7 @@ export default function LoginPage() {
     const initGoogle = () => {
       if (typeof window !== 'undefined' && window.google) {
         window.google.accounts.id.initialize({
-          client_id: '610897476416-ahmu34m9v9ek4sq719a1f7fkdok8j7sg.apps.googleusercontent.com',
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '610897476416-ahmu34m9v9ek4sq719a1f7fkdok8j7sg.apps.googleusercontent.com',
           callback: handleGoogleLoginResponse,
         });
         window.google.accounts.id.renderButton(
