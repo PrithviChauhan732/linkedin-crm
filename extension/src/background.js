@@ -92,11 +92,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     case 'SYNC_CONNECTIONS_DATA':
       syncToBackend('/contacts/sync-connections', { connections: msg.data })
         .then(res => {
-          if (_sender && _sender.tab) chrome.tabs.remove(_sender.tab.id); // close the background tab
+          if (sender && sender.tab) chrome.tabs.remove(sender.tab.id); // close the background tab
           sendResponse({ ok: true, updated: res.updated });
         })
         .catch(e => {
-          if (_sender && _sender.tab) chrome.tabs.remove(_sender.tab.id);
+          if (sender && sender.tab) chrome.tabs.remove(sender.tab.id);
           sendResponse({ error: e.message });
         });
       return true;
