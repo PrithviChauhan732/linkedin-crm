@@ -52,13 +52,15 @@ const authMiddleware = require('./middleware/authMiddleware');
 app.use('/api/auth',      require('./routes/auth'));
 
 // Protected Routes
-app.use('/api/contacts',  authMiddleware, require('./routes/contacts'));
-app.use('/api/groups',    authMiddleware, require('./routes/groups'));
-app.use('/api/templates', authMiddleware, require('./routes/templates'));
-app.use('/api/campaigns', authMiddleware, require('./routes/campaigns'));
-app.use('/api/messages',  authMiddleware, require('./routes/messages'));
-app.use('/api/pipelines', authMiddleware, require('./routes/pipelines'));
-app.use('/api/workflows', authMiddleware, require('./routes/workflows'));
+app.use('/api/contacts',   authMiddleware, require('./routes/contacts'));
+app.use('/api/groups',     authMiddleware, require('./routes/groups'));
+app.use('/api/templates',  authMiddleware, require('./routes/templates'));
+app.use('/api/campaigns',  authMiddleware, require('./routes/campaigns'));
+app.use('/api/messages',   authMiddleware, require('./routes/messages'));
+app.use('/api/pipelines',  authMiddleware, require('./routes/pipelines'));
+app.use('/api/workflows',  authMiddleware, require('./routes/workflows'));
+app.use('/api/companies',  require('./routes/companies'));
+
 
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 

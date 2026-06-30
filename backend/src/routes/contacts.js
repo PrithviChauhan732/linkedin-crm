@@ -142,6 +142,46 @@ router.post('/:id/remove-from-group', async (req, res) => {
   res.json({ contact });
 });
 
+// POST /api/contacts/upsert-batch — create or update multiple contacts (deduped by profileUrl)
+// Used by the extension People scraper to save a batch of people from a company page.
+router.post('/upsert-batch', async (req, res) => {
+  try {
+    const { contacts: batch, groupId, campaignId } = req.body;
+    if (!Array.isArray(batch) || batch.length === 0) return res.status(400).json({ error: 'contacts array required' });
+
+    const results = await Promise.all(batch.map(async (c) => {
+      const filter = c.profileUrl
+        ? { user: req.user.id, profileUrl: c.profileUrl }
+        : { user: req.user.id, name: c.name };
+
+      const update = {
+        user: req.user.id,
+        name:       c.name       || 'Unknown',
+        headline:   c.headline   || '',
+        company:    c.company    || '',
+        profileUrl: c.profileUrl || '',
+        ...(groupId && { $addToSet: { groups: groupId } }),
+      };
+
+      return Contact.findOneAndUpdate(filter, update, { upsert: true, new: true, setDefaultsOnInsert: true });
+    }));
+
+    // If a campaign was specified, add all contact IDs to it
+    if (campaignId) {
+      const Campaign = require('../models/Campaign');
+      const ids = results.map(c => c._id);
+      await Campaign.findOneAndUpdate(
+        { _id: campaignId, user: req.user.id },
+        { $addToSet: { contacts: { $each: ids } } }
+      );
+    }
+
+    res.json({ ok: true, count: results.length, contacts: results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DELETE /api/contacts/:id
 router.delete('/:id', async (req, res) => {
   await Contact.findOneAndDelete({ _id: req.params.id, user: req.user.id });

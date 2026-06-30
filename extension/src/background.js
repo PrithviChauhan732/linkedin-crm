@@ -50,6 +50,18 @@ function pushCampaignSend(tabId, pending, attempt = 0) {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   switch (msg.type) {
 
+    case 'ADD_COMPANY':
+      syncToBackend('/companies/upsert', msg.data)
+        .then(res => sendResponse({ ok: true, company: res }))
+        .catch(e => sendResponse({ error: e.message }));
+      return true;
+
+    case 'ADD_PEOPLE_TO_CRM':
+      syncToBackend('/contacts/upsert-batch', msg.data)
+        .then(res => sendResponse({ ok: true, count: res.count }))
+        .catch(e => sendResponse({ error: e.message }));
+      return true;
+
     case 'SYNC_CONVERSATIONS':
       syncToBackend('/messages/sync-conversations', msg.data)
         .then(() => sendResponse({ ok: true }))
