@@ -57,4 +57,46 @@ router.delete('/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+// POST /api/pipelines/:id/stages/:stageId/steps — add a step to a stage's follow-up chain
+router.post('/:id/stages/:stageId/steps', async (req, res) => {
+  try {
+    const { step } = req.body;
+    if (!step) return res.status(400).json({ error: 'Step content required' });
+
+    const pipeline = await Pipeline.findOne({ _id: req.params.id, user: req.user.id });
+    if (!pipeline) return res.status(404).json({ error: 'Pipeline not found' });
+
+    if (!pipeline.followUps) pipeline.followUps = new Map();
+    const currentSteps = pipeline.followUps.get(req.params.stageId) || [];
+    currentSteps.push(step);
+    pipeline.followUps.set(req.params.stageId, currentSteps);
+    
+    await pipeline.save();
+    res.json({ pipeline });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/pipelines/:id/stages/:stageId/steps/:stepIndex — remove a step from a stage's follow-up chain
+router.delete('/:id/stages/:stageId/steps/:stepIndex', async (req, res) => {
+  try {
+    const pipeline = await Pipeline.findOne({ _id: req.params.id, user: req.user.id });
+    if (!pipeline) return res.status(404).json({ error: 'Pipeline not found' });
+
+    if (pipeline.followUps) {
+      const currentSteps = pipeline.followUps.get(req.params.stageId) || [];
+      const idx = Number(req.params.stepIndex);
+      if (idx >= 0 && idx < currentSteps.length) {
+        currentSteps.splice(idx, 1);
+        pipeline.followUps.set(req.params.stageId, currentSteps);
+        await pipeline.save();
+      }
+    }
+    res.json({ pipeline });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import useSWR from 'swr';
-import { fetcher, patch, post } from '../../lib/api';
+import { fetcher, patch, post, del } from '../../lib/api';
 
 const STAGE_CONFIG = {
   'new':               { label: 'Lead / New',           color: 'bg-slate-100 text-slate-800 border-slate-300' },
@@ -19,11 +19,9 @@ const STAGE_CONFIG = {
 
 export default function PipelinePage() {
   const { data: pipelineData, mutate: mutatePipelines } = useSWR('/pipelines', fetcher);
-  const { data: contactData, mutate: mutateContacts } = useSWR('/contacts?limit=500', fetcher, { refreshInterval: 10000 });
   const { data: campaignData } = useSWR('/campaigns', fetcher);
 
   const pipelines = pipelineData?.pipelines || [];
-  const contacts = contactData?.contacts || [];
   const campaigns = campaignData?.campaigns || [];
 
   const [activePipelineId, setActivePipelineId] = useState(null);
@@ -39,6 +37,14 @@ export default function PipelinePage() {
   const [isTestingMl, setIsTestingMl] = useState(false);
 
   const activePipeline = pipelines.find(p => p._id === activePipelineId) || pipelines[0] || {};
+
+  // Fetch contacts scoped by the active pipeline
+  const contactsQueryUrl = activePipeline._id
+    ? `/contacts?limit=500&pipelineId=${activePipeline._id}&isDefault=${!!activePipeline.isDefault}`
+    : null;
+
+  const { data: contactData, mutate: mutateContacts } = useSWR(contactsQueryUrl, fetcher, { refreshInterval: 10000 });
+  const contacts = contactData?.contacts || [];
 
   async function handleCreatePipeline(e) {
     e.preventDefault();
@@ -67,6 +73,24 @@ export default function PipelinePage() {
   async function moveStage(contactId, newStatus) {
     await patch(`/contacts/${contactId}`, { status: newStatus });
     mutateContacts();
+  }
+
+  async function movePipeline(contactId, targetPipelineId) {
+    await patch(`/contacts/${contactId}`, { pipelineId: targetPipelineId });
+    mutateContacts();
+  }
+
+  async function addStep(stageId) {
+    const step = prompt("Enter the follow-up step description (e.g. 'Send Calendar Link'):");
+    if (!step || !step.trim()) return;
+    await post(`/pipelines/${activePipeline._id}/stages/${stageId}/steps`, { step: step.trim() });
+    mutatePipelines();
+  }
+
+  async function removeStep(stageId, index) {
+    if (!confirm("Are you sure you want to remove this step?")) return;
+    await del(`/pipelines/${activePipeline._id}/stages/${stageId}/steps/${index}`);
+    mutatePipelines();
   }
 
   async function testMlEngine() {
@@ -111,28 +135,37 @@ export default function PipelinePage() {
     <div className="flex flex-col h-full w-full overflow-hidden bg-slate-50 font-sans">
       
       {/* ── Header ────────────────────────────────────────────────────────────── */}
-      <div className="px-8 py-5 border-b border-slate-200 bg-white shrink-0 flex items-center justify-between z-20">
+      <div className="px-8 pt-5 pb-3 bg-white shrink-0 flex items-center justify-between z-20">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Visual Pipeline</h1>
           <p className="text-xs text-slate-500 mt-1 font-medium">Manage flows and ML intent routing</p>
         </div>
-        <div className="flex items-center gap-4">
-          <select
-            value={activePipeline._id || ''}
-            onChange={e => setActivePipelineId(e.target.value)}
-            className="text-sm font-semibold bg-slate-50 border border-slate-300 text-slate-700 rounded-xl px-4 py-2 outline-none shadow-sm cursor-pointer"
-          >
-            {pipelines.map(p => (
-              <option key={p._id} value={p._id}>{p.name}{p.isDefault ? ' (Default)' : ''}</option>
-            ))}
-          </select>
+      </div>
+
+      {/* ── Horizontal Pipeline Switching Tabs ────────────────────────────────── */}
+      <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-8 py-3 overflow-x-auto shrink-0 z-10">
+        {pipelines.map(p => (
           <button
-            onClick={() => setShowCreateModal(true)}
-            className="text-sm px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-sm"
+            key={p._id}
+            onClick={() => {
+              setActivePipelineId(p._id);
+              setSelectedStage(null);
+            }}
+            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all border whitespace-nowrap shadow-sm ${
+              activePipeline._id === p._id
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+            }`}
           >
-            + New Pipeline
+            {p.name}{p.isDefault ? ' (Default)' : ''}
           </button>
-        </div>
+        ))}
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="px-4 py-2 text-xs font-bold text-blue-600 bg-blue-50/50 hover:bg-blue-50 border border-dashed border-blue-300 rounded-xl transition-all shadow-sm"
+        >
+          + New Pipeline
+        </button>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
@@ -210,7 +243,7 @@ export default function PipelinePage() {
                <div className="absolute top-5 left-[900px] w-0.5 h-5 bg-slate-300"></div>
             </div>
 
-            {/* Phase 4: Outcomes Grid (7 ML Intents) */}
+            {/* Phase 4: Outcomes Grid (7 ML Intents) with follow-up steps */}
             <div className="flex items-start justify-center gap-[40px] w-full max-w-[1100px] pt-2">
               {[
                 'interested', 
@@ -220,16 +253,42 @@ export default function PipelinePage() {
                 'not_hiring', 
                 'not_interested', 
                 'ooo'
-              ].map(intent => (
-                <div key={intent} className="flex flex-col items-center">
-                  <Node id={intent} />
-                  {/* Add Step visual placeholder */}
-                  <div className="w-0.5 h-4 bg-slate-200 mt-2"></div>
-                  <button className="text-[9px] font-bold text-slate-400 uppercase tracking-widest border border-dashed border-slate-300 rounded px-3 py-1.5 hover:bg-slate-100 hover:text-slate-600 transition-colors">
-                    + Add Step
-                  </button>
-                </div>
-              ))}
+              ].map(intent => {
+                const steps = activePipeline.followUps?.[intent] || [];
+                return (
+                  <div key={intent} className="flex flex-col items-center shrink-0 w-28">
+                    <Node id={intent} />
+                    
+                    {/* Visual custom follow-up chains */}
+                    {steps.map((step, idx) => (
+                      <div key={idx} className="flex flex-col items-center w-full animate-in slide-in-from-top-3 duration-250">
+                        {/* vertical line */}
+                        <div className="w-0.5 h-4 bg-slate-300"></div>
+                        {/* Step Card */}
+                        <div className="relative group bg-white border border-slate-200 hover:border-red-200 rounded-xl px-2.5 py-1.5 text-[10px] font-bold text-slate-700 shadow-sm flex items-center justify-between gap-1 max-w-full">
+                          <span className="truncate" title={step}>{step}</span>
+                          <button
+                            onClick={() => removeStep(intent, idx)}
+                            className="text-[9px] text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all font-bold cursor-pointer shrink-0"
+                            title="Remove Step"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Add Step visual placeholder */}
+                    <div className="w-0.5 h-4 bg-slate-200 mt-2"></div>
+                    <button 
+                      onClick={() => addStep(intent)}
+                      className="text-[9px] font-black text-slate-400 uppercase tracking-wider border border-dashed border-slate-300 rounded px-2 py-1.5 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                    >
+                      + Add Step
+                    </button>
+                  </div>
+                );
+              })}
             </div>
             
           </div>
@@ -326,17 +385,34 @@ export default function PipelinePage() {
                       {contact.headline && (
                         <p className="text-xs text-slate-500 line-clamp-2 mb-3 leading-relaxed">{contact.headline}</p>
                       )}
-                      <div className="pt-3 border-t border-slate-100">
-                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Move to Stage</label>
-                        <select
-                          value={contact.status || 'new'}
-                          onChange={e => moveStage(contact._id, e.target.value)}
-                          className="text-xs w-full py-2 px-3 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 outline-none cursor-pointer focus:border-blue-400 focus:ring-2 focus:ring-blue-100 font-medium transition-all"
-                        >
-                          {Object.entries(STAGE_CONFIG).map(([key, val]) => (
-                            <option key={key} value={key}>{val.label}</option>
-                          ))}
-                        </select>
+                      
+                      <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
+                        {/* Move Pipeline Mover dropdown */}
+                        <div>
+                          <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Move to Pipeline</label>
+                          <select
+                            value={contact.pipelineId || (pipelines.find(p => p.isDefault)?._id || '')}
+                            onChange={e => movePipeline(contact._id, e.target.value)}
+                            className="text-xs w-full py-2 px-3 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 outline-none cursor-pointer focus:border-blue-400 focus:ring-2 focus:ring-blue-100 font-medium transition-all"
+                          >
+                            {pipelines.map(p => (
+                              <option key={p._id} value={p._id}>{p.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Move to Stage</label>
+                          <select
+                            value={contact.status || 'new'}
+                            onChange={e => moveStage(contact._id, e.target.value)}
+                            className="text-xs w-full py-2 px-3 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 outline-none cursor-pointer focus:border-blue-400 focus:ring-2 focus:ring-blue-100 font-medium transition-all"
+                          >
+                            {Object.entries(STAGE_CONFIG).map(([key, val]) => (
+                              <option key={key} value={key}>{val.label}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                     </div>
                   ))}

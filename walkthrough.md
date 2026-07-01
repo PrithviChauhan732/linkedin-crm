@@ -21,8 +21,9 @@ I have successfully implemented all requested features to elevate your CRM pipel
 ## 4. Pipeline Automation & Visual Flowchart
 - **Unified Visual Pipeline:** The complex Kanban board and ML Routing map tabs have been entirely stripped out. In their place is a gorgeous, unified, single-screen **Visual Flowchart Grid**.
 - **Interactive ML Playground:** The central `ML Intent Engine` node is now fully interactive! Clicking it slides out a dark-mode testing playground where you can paste mock replies and instantly test the sub-10ms Python ML model (seeing its confidence score, intent class, and tag).
-- **Exact ML Output Alignment:** The final stages of the flowchart exactly mirror the 7 classes emitted by the ML model (`Interested`, `Form Request`, `Not Hiring`, `Not Interested`, `Referral`, `Question`, `OOO`). Beneath each node, a visual "+ Add Step" placeholder exists for adding follow-up nodes.
-- **Embedded Interactions & Pipeline Save:** You can create and save unlimited custom pipelines via the top dropdown. Selecting a pipeline binds this exact flowchart to it. Clicking any end-node (e.g., "Interested") cleanly slides out a right-hand panel where you can view all prospects in that stage and manually move them.
+- **Exact ML Output Alignment:** The final stages of the flowchart exactly mirror the 7 classes emitted by the ML model (`Interested`, `Form Request`, `Not Hiring`, `Not Interested`, `Referral`, `Question`, `OOO`). Beneath each node, there is a fully functional **"+ Add Step"** visual follow-up step builder! Click it to create a custom follow-up action chain that persists in the database and renders visually as connected nodes underneath.
+- **Embedded Interactions & Pipeline Switching:** Switch between unlimited custom pipelines instantly using the horizontal active tab bar at the top. You can create a new pipeline via the "+ New Pipeline" tab. Every pipeline isolates its own set of contacts. 
+- **Pipeline Mover:** Clicking any outcome node (e.g., "Interested") opens a right-hand sidebar where you can edit contacts and move them directly to other pipelines or stages.
 - **Campaign Triggering:** The "Trigger Campaign" interface is visually baked directly into the connection flow below the `Connected` node. Select a campaign, hit Run, and watch the prospects visually flow down into the `Outreach Sent` node.
 
 > [!TIP]

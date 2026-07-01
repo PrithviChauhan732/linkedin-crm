@@ -33,6 +33,7 @@ const ContactSchema = new mongoose.Schema({
   replyPreview:   { type: String },
   messageCount:   { type: Number, default: 0 },
   threadId:       { type: String },
+  pipelineId:     { type: mongoose.Schema.Types.ObjectId, ref: 'Pipeline' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Contact', ContactSchema);

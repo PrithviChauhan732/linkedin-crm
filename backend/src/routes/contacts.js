@@ -10,7 +10,7 @@ router.get('/tags', async (req, res) => {
 
 // GET /api/contacts
 router.get('/', async (req, res) => {
-  const { group, status, tag, search, page = 1, limit = 50 } = req.query;
+  const { group, status, tag, search, pipelineId, isDefault, page = 1, limit = 50 } = req.query;
   const filter = { user: req.user.id };
 
   if (group)  filter.groups = group;
@@ -22,6 +22,21 @@ router.get('/', async (req, res) => {
     { company:  { $regex: search, $options: 'i' } },
     { tags:     { $regex: search, $options: 'i' } },
   ];
+  
+  if (pipelineId) {
+    if (isDefault === 'true') {
+      filter.$and = filter.$and || [];
+      filter.$and.push({
+        $or: [
+          { pipelineId: pipelineId },
+          { pipelineId: { $exists: false } },
+          { pipelineId: null }
+        ]
+      });
+    } else {
+      filter.pipelineId = pipelineId;
+    }
+  }
 
   const [contacts, total] = await Promise.all([
     Contact.find(filter)
@@ -131,7 +146,7 @@ router.post('/', async (req, res) => {
 
 // PATCH /api/contacts/:id
 router.patch('/:id', async (req, res) => {
-  const allowed = ['status', 'notes', 'tags', 'name', 'headline', 'company', 'email', 'phone', 'location', 'website', 'mutualConnection', 'recentPostTopic', 'leadScore'];
+  const allowed = ['status', 'notes', 'tags', 'name', 'headline', 'company', 'email', 'phone', 'location', 'website', 'mutualConnection', 'recentPostTopic', 'leadScore', 'pipelineId'];
   const update  = Object.fromEntries(
     Object.entries(req.body).filter(([k]) => allowed.includes(k))
   );
