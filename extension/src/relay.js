@@ -11,5 +11,14 @@ window.addEventListener('message', (event) => {
   }
 });
 
-// Request token from the page context (MAIN world) on load to sync to extension storage
-window.postMessage({ lcrmRequestToken: true }, '*');
+// Periodically request token from the page context (MAIN world) to sync to extension storage
+// This handles client-side navigations, logins, and extension reloads seamlessly.
+setInterval(() => {
+  try {
+    window.postMessage({ lcrmRequestToken: true }, '*');
+  } catch {}
+}, 2000);
+// Run immediately on injection as well
+try {
+  window.postMessage({ lcrmRequestToken: true }, '*');
+} catch {}

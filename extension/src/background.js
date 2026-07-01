@@ -75,7 +75,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       return true;
 
     case 'PROFILE_VIEWED':
-      syncToBackend('/contacts/upsert', msg.data)
+      syncToBackend('/contacts/upsert', { ...msg.data, upsert: false })
         .then(res => sendResponse({ ok: true, contact: res }))
         .catch(e => sendResponse({ error: e.message }));
       return true;
@@ -123,6 +123,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       break;
 
     case 'SAVE_TOKEN':
+      console.log('[WarmDM] Syncing token to background storage:', msg.token ? 'Token Found' : 'Token Null');
       chrome.storage.local.set({ token: msg.token }, () => {
         sendResponse({ ok: true });
       });

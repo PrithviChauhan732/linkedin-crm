@@ -137,10 +137,11 @@ router.post('/upsert', async (req, res) => {
     updateData.status = incomingStatus;
   }
 
+  const shouldUpsert = req.body.upsert !== false;
   const contact = await Contact.findOneAndUpdate(
     { profileUrl, user: req.user.id },
     { $set: updateData },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: shouldUpsert, new: true, setDefaultsOnInsert: true }
   );
 
   res.json({ contact });
