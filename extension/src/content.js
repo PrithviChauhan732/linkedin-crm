@@ -52,6 +52,7 @@ function safeSend(msg, callback) {
 if (isContextValid()) {
   chrome.runtime.onMessage.addListener(handleMessage);
   onPageChange();
+  watchConnectButton();
 }
 
 // ── SPA navigation watcher ────────────────────────────────────────────────────
@@ -1018,4 +1019,34 @@ async function scrapeConnectionsPage() {
   
   // Send back to background script to sync
   chrome.runtime.sendMessage({ type: 'SYNC_CONNECTIONS_DATA', data: uniqueConns });
+}
+
+function watchConnectButton() {
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button, a');
+    if (!btn) return;
+    
+    const text = btn.textContent?.trim()?.toLowerCase() || '';
+    const aria = btn.getAttribute('aria-label')?.toLowerCase() || '';
+    
+    if (text.includes('connect') || aria.includes('connect')) {
+      console.log('[WarmDM] Connect button clicked, waiting to update status...');
+      // Wait for LinkedIn UI to update to pending
+      await sleep(1500);
+      const newStatus = getConnectionStatus();
+      if (newStatus === 'connection_sent' && currentProfileContact) {
+        currentProfileContact.connectionStatus = 'connection_sent';
+        const badge = document.getElementById('lcrm-badge');
+        if (badge) {
+          const statusEl = badge.querySelector('#lcrm-badge-status');
+          if (statusEl) statusEl.textContent = 'Connection Sent!';
+        }
+        safeSend({ 
+          type: 'PROFILE_VIEWED', 
+          data: { ...currentProfileContact, connectionStatus: 'connection_sent' } 
+        });
+        console.log('[WarmDM] Status updated to connection_sent');
+      }
+    }
+  });
 }
