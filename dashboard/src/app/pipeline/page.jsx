@@ -70,6 +70,20 @@ export default function PipelinePage() {
     }
   }
 
+  async function executeStepCampaign(stageId, campaignId) {
+    const contactIds = getContacts(stageId).map(c => c._id);
+    if (contactIds.length === 0) return alert('No contacts in this stage to trigger outreach.');
+    
+    const res = await post(`/campaigns/${campaignId}/build-queue`, { contactIds });
+    if (res.queue) {
+      alert(`Queued ${res.queue.length} contacts! Open the extension to start sending.`);
+      contactIds.forEach(id => {
+        patch(`/contacts/${id}`, { status: 'contacted' });
+      });
+      setTimeout(mutateContacts, 1000);
+    }
+  }
+
   async function moveStage(contactId, newStatus) {
     await patch(`/contacts/${contactId}`, { status: newStatus });
     mutateContacts();
@@ -256,27 +270,54 @@ export default function PipelinePage() {
               ].map(intent => {
                 const steps = activePipeline.followUps?.[intent] || [];
                 return (
-                  <div key={intent} className="flex flex-col items-center shrink-0 w-28">
+                  <div key={intent} className="flex flex-col items-center shrink-0 w-44">
                     <Node id={intent} />
                     
                     {/* Visual custom follow-up chains */}
-                    {steps.map((step, idx) => (
-                      <div key={idx} className="flex flex-col items-center w-full animate-in slide-in-from-top-3 duration-250">
-                        {/* vertical line */}
-                        <div className="w-0.5 h-4 bg-slate-300"></div>
-                        {/* Step Card */}
-                        <div className="relative group bg-white border border-slate-200 hover:border-red-200 rounded-xl px-2.5 py-1.5 text-[10px] font-bold text-slate-700 shadow-sm flex items-center justify-between gap-1 max-w-full">
-                          <span className="truncate" title={step}>{step}</span>
-                          <button
-                            onClick={() => removeStep(intent, idx)}
-                            className="text-[9px] text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all font-bold cursor-pointer shrink-0"
-                            title="Remove Step"
-                          >
-                            ✕
-                          </button>
+                    {steps.map((step, idx) => {
+                      const selectId = `campaign-select-${intent}-${idx}`;
+                      const count = getContacts(intent).length;
+                      return (
+                        <div key={idx} className="flex flex-col items-center w-full animate-in slide-in-from-top-3 duration-250">
+                          {/* vertical line */}
+                          <div className="w-0.5 h-4 bg-slate-300"></div>
+                          {/* Step Card */}
+                          <div className="relative group bg-white border border-slate-200 rounded-xl p-3 shadow-sm w-44 flex flex-col gap-2">
+                            {/* Header & Delete */}
+                            <div className="flex items-start justify-between gap-1">
+                              <span className="text-[10px] font-bold text-slate-700 leading-snug truncate" title={step}>{step}</span>
+                              <button
+                                onClick={() => removeStep(intent, idx)}
+                                className="text-[9px] text-slate-400 hover:text-red-500 font-bold cursor-pointer shrink-0"
+                                title="Remove Step"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            
+                            {/* Campaign Selector & Trigger */}
+                            <select 
+                              id={selectId} 
+                              className="w-full text-[10px] bg-slate-50 border border-slate-200 rounded-lg outline-none p-1.5 focus:border-blue-400"
+                            >
+                              <option value="">-- Select Campaign --</option>
+                              {campaigns.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                            </select>
+                            <button 
+                              onClick={() => {
+                                const selectEl = document.getElementById(selectId);
+                                const campaignId = selectEl?.value;
+                                if (!campaignId) return alert('Select a campaign first');
+                                executeStepCampaign(intent, campaignId);
+                              }}
+                              className="w-full text-[9px] bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 rounded-lg shadow-sm transition-colors"
+                            >
+                              Run Outreach ({count})
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
 
                     {/* Add Step visual placeholder */}
                     <div className="w-0.5 h-4 bg-slate-200 mt-2"></div>

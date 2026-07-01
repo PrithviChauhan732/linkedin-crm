@@ -59,6 +59,7 @@ export default function ContactsPage() {
   const [newTag, setNewTag]         = useState('');
   const [addingTag, setAddingTag]   = useState(false);
   const [newGlobalTag, setNewGlobalTag] = useState('');
+  const [checkedIds, setCheckedIds] = useState(new Set());
 
   const params = new URLSearchParams({ page, limit: 50 });
   if (search) params.set('search', search);
@@ -66,7 +67,10 @@ export default function ContactsPage() {
   if (group)  params.set('group', group);
   if (tag)    params.set('tag', tag);
 
-  const { data, mutate }      = useSWR(`/contacts?${params}`, fetcher, { refreshInterval: 30000 });
+  const { data, mutate }      = useSWR(`/contacts?${params}`, fetcher, { 
+    refreshInterval: 30000,
+    onSuccess: () => setCheckedIds(new Set())
+  });
   const { data: groupsData }  = useSWR('/groups', fetcher);
   const { data: tagsData, mutate: mutateTags } = useSWR('/contacts/tags', fetcher);
 
@@ -79,6 +83,40 @@ export default function ContactsPage() {
     const res = await fetcher(`/contacts/${id}`);
     setSelected(res.contact);
   }, []);
+
+  const toggleSelectAll = () => {
+    const allChecked = contacts.length > 0 && contacts.every(c => checkedIds.has(c._id));
+    const next = new Set(checkedIds);
+    if (allChecked) {
+      contacts.forEach(c => next.delete(c._id));
+    } else {
+      contacts.forEach(c => next.add(c._id));
+    }
+    setCheckedIds(next);
+  };
+
+  const toggleSelectOne = (id) => {
+    const next = new Set(checkedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    setCheckedIds(next);
+  };
+
+  async function deleteCheckedContacts() {
+    const count = checkedIds.size;
+    if (!confirm(`Delete ${count} selected contacts? This cannot be undone.`)) return;
+    try {
+      await post('/contacts/delete-batch', { ids: Array.from(checkedIds) });
+      setCheckedIds(new Set());
+      mutate();
+      if (selected && checkedIds.has(selected._id)) setSelected(null);
+    } catch (err) {
+      alert(err.message || 'Failed to delete contacts');
+    }
+  }
 
   async function updateStatus(id, newStatus) {
     await patch(`/contacts/${id}`, { status: newStatus });
@@ -142,6 +180,14 @@ export default function ContactsPage() {
               {data?.total ?? 0} total · visit a LinkedIn profile to add contacts automatically
             </p>
           </div>
+          {checkedIds.size > 0 && (
+            <button
+              onClick={deleteCheckedContacts}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+            >
+              Delete Selected ({checkedIds.size})
+            </button>
+          )}
         </div>
 
         {/* Filters */}
@@ -198,6 +244,14 @@ export default function ContactsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th className="px-4 py-3 text-left w-10">
+                  <input
+                    type="checkbox"
+                    checked={contacts.length > 0 && contacts.every(c => checkedIds.has(c._id))}
+                    onChange={toggleSelectAll}
+                    className="rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                </th>
                 {['Contact', 'Status', 'Tags', 'Last activity', ''].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500">{h}</th>
                 ))}
@@ -210,6 +264,14 @@ export default function ContactsPage() {
                   className={`cursor-pointer transition-colors ${
                     selected?._id === c._id ? 'bg-blue-50' : 'hover:bg-gray-50'
                   }`}>
+                  <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={checkedIds.has(c._id)}
+                      onChange={() => toggleSelectOne(c._id)}
+                      className="rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                  </td>
                   {/* Contact */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -258,7 +320,7 @@ export default function ContactsPage() {
               ))}
               {contacts.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-gray-400 text-sm">
+                  <td colSpan={6} className="px-4 py-12 text-center text-gray-400 text-sm">
                     No contacts found.
                   </td>
                 </tr>
