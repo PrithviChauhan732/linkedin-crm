@@ -4,27 +4,41 @@ import useSWR from 'swr';
 import { fetcher, patch, post, del } from '../../lib/api';
 
 const STATUS_COLORS = {
-  new:         'bg-gray-100 text-gray-500',
-  contacted:   'bg-blue-100 text-blue-700',
-  replied:     'bg-green-100 text-green-700',
-  not_replied: 'bg-amber-100 text-amber-700',
-  converted:   'bg-purple-100 text-purple-700',
-  archived:    'bg-gray-200 text-gray-500',
+  new:                'bg-slate-100 text-slate-600',
+  connection_sent:    'bg-amber-50 text-amber-700',
+  connected:          'bg-teal-50 text-teal-700',
+  contacted:          'bg-blue-100 text-blue-700',
+  replied:            'bg-green-100 text-green-700',
+  not_replied:        'bg-amber-100 text-amber-700',
+  manual_validation:  'bg-purple-100 text-purple-700',
+  interested:         'bg-emerald-100 text-emerald-700',
+  not_interested:     'bg-rose-100 text-rose-700',
+  meeting_scheduled:  'bg-amber-100 text-amber-800',
+  qualified:          'bg-indigo-100 text-indigo-700',
+  closed_won:         'bg-indigo-200 text-indigo-900',
+  converted:          'bg-purple-100 text-purple-700',
+  archived:           'bg-gray-200 text-gray-500',
+  ooo:                'bg-slate-100 text-slate-500',
+  referral:           'bg-blue-50 text-blue-600',
+  question:           'bg-purple-50 text-purple-600',
+  form_request:       'bg-cyan-50 text-cyan-700',
 };
-const STATUS_DOT = {
-  new:         'bg-gray-400',
-  contacted:   'bg-blue-500',
-  replied:     'bg-green-500',
-  not_replied: 'bg-amber-500',
-  converted:   'bg-purple-500',
-  archived:    'bg-gray-400',
-};
-const STATUSES = ['new', 'contacted', 'replied', 'not_replied', 'converted', 'archived'];
 
-const TAG_PALETTE = [
-  '#0a66c2','#7c3aed','#db2777','#dc2626','#d97706',
-  '#16a34a','#0891b2','#64748b',
+const STATUSES = [
+  'new', 'connection_sent', 'connected', 'contacted',
+  'replied', 'not_replied', 'manual_validation', 'interested', 'not_interested',
+  'meeting_scheduled', 'qualified', 'closed_won', 'converted',
+  'archived', 'ooo', 'referral', 'question', 'form_request',
 ];
+
+const STATUS_LABEL = {
+  new: 'Lead / New', connection_sent: 'Connection Sent', connected: 'Connected',
+  contacted: 'Outreach Sent', replied: 'Replied', not_replied: 'No Reply',
+  manual_validation: 'Manual Review', interested: 'Interested', not_interested: 'Not Interested',
+  meeting_scheduled: 'Meeting Scheduled', qualified: 'Qualified', closed_won: 'Closed Won',
+  converted: 'Converted', archived: 'Archived', ooo: 'Out of Office',
+  referral: 'Referral', question: 'Question', form_request: 'Form Request',
+};
 
 function initials(name = '') {
   return name.split(/[\s-]+/).slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('');
@@ -141,7 +155,7 @@ export default function ContactsPage() {
           <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-blue-400">
             <option value="">All statuses</option>
-            {STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+            {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABEL[s] || s}</option>)}
           </select>
           <select value={group} onChange={e => { setGroup(e.target.value); setPage(1); }}
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-blue-400">
@@ -214,7 +228,7 @@ export default function ContactsPage() {
                     <select value={c.status}
                       onChange={e => updateStatus(c._id, e.target.value)}
                       className={`text-xs px-2.5 py-1 rounded-full border-0 cursor-pointer outline-none font-medium ${STATUS_COLORS[c.status]}`}>
-                      {STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+                      {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABEL[s] || s}</option>)}
                     </select>
                   </td>
                   {/* Tags */}
@@ -336,23 +350,66 @@ function DetailPanel({ contact, groups, allTags, onClose, onStatusChange, onNote
         </div>
 
         {c.headline && (
-          <p className="text-xs text-gray-500 leading-relaxed mb-3">{c.headline}</p>
+          <p className="text-xs text-gray-500 leading-relaxed mb-2">{c.headline}</p>
+        )}
+
+        {/* Lead score bar */}
+        {c.leadScore != null && (
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-gray-400">Lead score</span>
+              <span className={`text-xs font-bold ${c.leadScore >= 70 ? 'text-emerald-600' : c.leadScore >= 40 ? 'text-amber-600' : 'text-slate-400'}`}>
+                {c.leadScore}/100
+              </span>
+            </div>
+            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className={`h-full rounded-full transition-all ${c.leadScore >= 70 ? 'bg-emerald-500' : c.leadScore >= 40 ? 'bg-amber-500' : 'bg-slate-300'}`}
+                style={{ width: `${c.leadScore}%` }} />
+            </div>
+          </div>
         )}
 
         <div className="flex gap-2 flex-wrap">
           <a href={c.profileUrl} target="_blank" rel="noreferrer"
-            className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1">
-            <span>LinkedIn ↗</span>
+            className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            LinkedIn ↗
           </a>
           <select value={c.status} onChange={e => onStatusChange(c._id, e.target.value)}
-            className={`text-xs px-2.5 py-1.5 rounded-lg border-0 cursor-pointer outline-none font-medium ${STATUS_COLORS[c.status]}`}>
-            {STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+            className={`text-xs px-2.5 py-1.5 rounded-lg border-0 cursor-pointer outline-none font-medium ${STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-600'}`}>
+            {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABEL[s] || s}</option>)}
           </select>
         </div>
       </div>
 
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
+
+        {/* Extra contact info */}
+        {(c.location || c.email || c.phone || c.mutualConnection) && (
+          <div className="space-y-1.5">
+            {c.location && (
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span className="text-gray-300">📍</span> {c.location}
+              </div>
+            )}
+            {c.email && (
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span className="text-gray-300">✉️</span>
+                <a href={`mailto:${c.email}`} className="hover:text-blue-600 truncate">{c.email}</a>
+              </div>
+            )}
+            {c.phone && (
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span className="text-gray-300">📞</span> {c.phone}
+              </div>
+            )}
+            {c.mutualConnection && (
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span className="text-gray-300">🤝</span> via {c.mutualConnection}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Tags */}
         <div>
