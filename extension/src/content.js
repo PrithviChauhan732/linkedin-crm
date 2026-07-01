@@ -809,25 +809,57 @@ async function fetchContactInfo(contact) {
   return contact;
 }
 
+// ── Headline / Role (module scope so the patch interval can call them) ──────────
+function scrapeHeadline() {
+  const candidates = [
+    document.querySelector('.text-body-medium.break-words'),
+    document.querySelector('[data-anonymize="person-tagline"]'),
+    document.querySelector('.pv-text-details__left-panel .text-body-medium.break-words'),
+    document.querySelector('main .ph5 .text-body-medium.break-words'),
+    // Fallback: first text-body-medium NOT inside the right-panel (which is company)
+    ...Array.from(document.querySelectorAll('.text-body-medium')).filter(el =>
+      !el.closest('.pv-text-details__right-panel')
+    ),
+  ];
+  for (const el of candidates) {
+    const t = el?.textContent?.trim();
+    if (t && t.length > 2) return t;
+  }
+  return '';
+}
+
+// ── Company (module scope) ────────────────────────────────────────────────────
+function scrapeCompany() {
+  // Right panel of top card (current company button)
+  const rightPanel = document.querySelector('.pv-text-details__right-panel');
+  if (rightPanel) {
+    // Try the button span inside right panel first
+    const btn = rightPanel.querySelector('button span:not(.visually-hidden), .hoverable-link-text span');
+    if (btn?.textContent?.trim()) return btn.textContent.trim();
+    // Fallback to first non-empty span text in right panel
+    const spans = Array.from(rightPanel.querySelectorAll('span')).filter(s =>
+      s.textContent.trim().length > 1 && !s.classList.contains('visually-hidden')
+    );
+    if (spans[0]?.textContent?.trim()) return spans[0].textContent.trim();
+  }
+  // Fallback: first experience list item company name
+  const expCompany = document.querySelector(
+    '.pvs-list__item--line-separated .hoverable-link-text span[aria-hidden="true"], ' +
+    '.experience-section .pv-entity__secondary-title span:last-child, ' +
+    '.pv-profile-section .pv-entity__company-summary-info h3 span:last-child'
+  );
+  if (expCompany?.textContent?.trim()) return expCompany.textContent.trim();
+  return '';
+}
+
 function enrichFromDOM(contact, attempt = 0) {
   const currentUsername = window.location.href.match(/linkedin\.com\/in\/([^/?#]+)/)?.[1];
   if (currentUsername !== contact.username) return;
 
   const name     = findProfileName();
-  const headline = (
-    document.querySelector('.text-body-medium.break-words') ||
-    document.querySelector('[data-anonymize="person-tagline"]') ||
-    document.querySelector('.pv-text-details__left-panel .text-body-medium') ||
-    document.querySelector('.text-body-medium')
-  )?.textContent?.trim() || '';
 
-  const company = (
-    document.querySelector('.pv-text-details__right-panel .text-body-medium') ||
-    document.querySelector('[aria-label*="Current company"]') ||
-    document.querySelector('.pv-text-details__right-panel button span') ||
-    document.querySelector('.pv-text-details__right-panel .inline-show-more-text') ||
-    document.querySelector('.pv-text-details__right-panel')
-  )?.textContent?.trim() || '';
+  const headline = scrapeHeadline();
+  const company  = scrapeCompany();
 
   const location = (document.querySelector('.pv-text-details__left-panel .text-body-small.inline') || document.querySelector('[data-anonymize="location"]'))?.textContent?.trim() || '';
   const connectionStatus = getConnectionStatus();
@@ -862,6 +894,29 @@ function enrichFromDOM(contact, attempt = 0) {
     
     // Re-inject badge with enriched data (name/role/company now populated)
     injectProfileBadge(contact);
+    
+    // If headline or company were empty, keep polling the DOM and patch the inputs in-place
+    if (!headline || !company) {
+      let patchAttempts = 0;
+      const patchInterval = setInterval(() => {
+        patchAttempts++;
+        const liveHeadline = scrapeHeadline();
+        const liveCompany  = scrapeCompany();
+        const headlineInput = document.getElementById('lcrm-badge-headline-input');
+        const companyInput  = document.getElementById('lcrm-badge-company-input');
+        if (headlineInput && liveHeadline && !headlineInput.value) {
+          headlineInput.value = liveHeadline;
+          contact.headline = liveHeadline;
+        }
+        if (companyInput && liveCompany && !companyInput.value) {
+          companyInput.value = liveCompany;
+          contact.company = liveCompany;
+        }
+        if ((headlineInput?.value && companyInput?.value) || patchAttempts > 13) {
+          clearInterval(patchInterval);
+        }
+      }, 600);
+    }
     
     // Background fetch contact info overlay
     fetchContactInfo(contact).then((enrichedContact) => {
