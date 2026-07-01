@@ -359,15 +359,14 @@ function injectPeoplePanel(people, companyName, campaigns, groups) {
   const groupOptions    = groups.map(g => `<option value="${g._id}">${g.name}</option>`).join('');
 
   const peopleRows = people.map((p, i) => `
-    <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #1e293b;cursor:pointer;transition:background .15s;" 
-           class="lcrm-person-row" onmouseover="this.style.background='#1e293b'" onmouseout="this.style.background='transparent'">
-      <input type="checkbox" value="${i}" checked style="margin-top:3px;accent-color:#3b82f6;cursor:pointer;" />
-      <div style="min-width:0;flex:1;">
-        <div style="font-weight:600;font-size:12px;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.name)}</div>
-        ${p.headline ? `<div style="font-size:11px;color:#94a3b8;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.headline)}</div>` : ''}
-        ${p.profileUrl ? `<a href="${p.profileUrl}" target="_blank" rel="noopener" style="font-size:10px;color:#60a5fa;text-decoration:none;">View Profile →</a>` : ''}
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #1e293b;" class="lcrm-person-row">
+      <input type="checkbox" value="${i}" checked style="margin-top:6px;accent-color:#3b82f6;cursor:pointer;" class="lcrm-person-checkbox" />
+      <div style="min-width:0;flex:1;display:flex;flex-direction:column;gap:4px;">
+        <input type="text" value="${escapeHtml(p.name)}" class="lcrm-person-name-input" data-idx="${i}" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:4px;padding:4px 6px;color:#f1f5f9;font-size:12px;outline:none;" />
+        ${p.headline ? `<div style="font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.headline)}</div>` : ''}
+        ${p.profileUrl ? `<a href="${p.profileUrl}" target="_blank" rel="noopener" style="font-size:10px;color:#60a5fa;text-decoration:none;align-self:flex-start;">View Profile →</a>` : ''}
       </div>
-    </label>
+    </div>
   `).join('');
 
   panel.innerHTML = `
@@ -465,14 +464,14 @@ function injectPeoplePanel(people, companyName, campaigns, groups) {
         people.push(p);
         const div = document.createElement('div');
         div.innerHTML = `
-          <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #1e293b;cursor:pointer;" class="lcrm-person-row">
-            <input type="checkbox" value="${idx}" checked style="margin-top:3px;accent-color:#3b82f6;" />
-            <div style="min-width:0;flex:1;">
-              <div style="font-weight:600;font-size:12px;color:#f1f5f9;">${escapeHtml(p.name)}</div>
-              ${p.headline ? `<div style="font-size:11px;color:#94a3b8;">${escapeHtml(p.headline)}</div>` : ''}
-              ${p.profileUrl ? `<a href="${p.profileUrl}" target="_blank" style="font-size:10px;color:#60a5fa;text-decoration:none;">View Profile →</a>` : ''}
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #1e293b;" class="lcrm-person-row">
+            <input type="checkbox" value="${idx}" checked style="margin-top:6px;accent-color:#3b82f6;cursor:pointer;" class="lcrm-person-checkbox" />
+            <div style="min-width:0;flex:1;display:flex;flex-direction:column;gap:4px;">
+              <input type="text" value="${escapeHtml(p.name)}" class="lcrm-person-name-input" data-idx="${idx}" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:4px;padding:4px 6px;color:#f1f5f9;font-size:12px;outline:none;" />
+              ${p.headline ? `<div style="font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.headline)}</div>` : ''}
+              ${p.profileUrl ? `<a href="${p.profileUrl}" target="_blank" rel="noopener" style="font-size:10px;color:#60a5fa;text-decoration:none;align-self:flex-start;">View Profile →</a>` : ''}
             </div>
-          </label>`;
+          </div>`;
         list.appendChild(div.firstElementChild);
       });
       document.getElementById('lcrm-pp-status').textContent = `Loaded ${freshPeople.length} people total.`;
@@ -485,7 +484,17 @@ function injectPeoplePanel(people, companyName, campaigns, groups) {
 
   // Save selected contacts
   document.getElementById('lcrm-pp-save').onclick = async () => {
-    const checked    = [...panel.querySelectorAll('input[type=checkbox]:checked')].map(cb => people[+cb.value]).filter(Boolean);
+    const checked = [...panel.querySelectorAll('.lcrm-person-checkbox:checked')].map(cb => {
+      const idx = +cb.value;
+      const person = people[idx];
+      if (!person) return null;
+      const input = panel.querySelector(`.lcrm-person-name-input[data-idx="${idx}"]`);
+      return {
+        ...person,
+        name: input ? input.value.trim() : person.name
+      };
+    }).filter(Boolean);
+
     const campaignId = document.getElementById('lcrm-pp-campaign').value || null;
     const groupId    = document.getElementById('lcrm-pp-group').value    || null;
     const statusEl   = document.getElementById('lcrm-pp-status');
@@ -754,8 +763,8 @@ function enrichFromDOM(contact, attempt = 0) {
     currentProfileContact = contact;
     const badge = document.getElementById('lcrm-badge');
     if (badge) {
-      const nameEl = badge.querySelector('#lcrm-name');
-      if (nameEl) nameEl.textContent = name;
+      const nameInput = badge.querySelector('#lcrm-badge-name-input');
+      if (nameInput) nameInput.value = name;
     } else {
       injectProfileBadge(contact);
     }
@@ -803,8 +812,8 @@ async function injectProfileBadge(contact) {
   }).join('');
 
   badge.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <div id="lcrm-name" style="font-weight:700;font-size:14px;color:#f8fafc;">${contact.name}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;">
+      <input type="text" id="lcrm-badge-name-input" value="${escapeHtml(contact.name)}" style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px;color:#f8fafc;font-size:12px;font-weight:600;outline:none;flex:1;min-width:0;" />
       <button id="lcrm-badge-close" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:16px;">✕</button>
     </div>
     
@@ -834,12 +843,17 @@ async function injectProfileBadge(contact) {
     const campaignId = badge.querySelector('#lcrm-badge-campaign').value;
     const statusEl = badge.querySelector('#lcrm-badge-status');
     const btn = badge.querySelector('#lcrm-badge-save');
+    const customName = badge.querySelector('#lcrm-badge-name-input')?.value?.trim() || contact.name;
     
     btn.disabled = true;
     btn.textContent = 'Saving...';
     
     // Determine status to send
-    const dataToSend = { ...currentProfileContact, status: currentProfileContact.connectionStatus || 'new' };
+    const dataToSend = { 
+      ...currentProfileContact, 
+      name: customName, 
+      status: currentProfileContact.connectionStatus || 'new' 
+    };
     
     safeSend({ type: 'ADD_PEOPLE_TO_CRM', data: {
       people: [dataToSend],
