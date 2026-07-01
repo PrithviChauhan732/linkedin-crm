@@ -1071,6 +1071,18 @@ async function injectProfileBadge(contact) {
       ${campaignOptions}
     </select>
 
+    <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px;display:block;">Status</label>
+    <select id="lcrm-badge-contact-status" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px;color:#e2e8f0;font-size:12px;margin-bottom:12px;outline:none;">
+      <option value="new"${(contact.connectionStatus||'new')==='new'?' selected':''}>new</option>
+      <option value="contacted"${contact.connectionStatus==='contacted'?' selected':''}>contacted</option>
+      <option value="replied"${contact.connectionStatus==='replied'?' selected':''}>replied</option>
+      <option value="interested"${contact.connectionStatus==='interested'?' selected':''}>interested</option>
+      <option value="closed"${contact.connectionStatus==='closed'?' selected':''}>closed</option>
+      <option value="not_interested"${contact.connectionStatus==='not_interested'?' selected':''}>not_interested</option>
+      <option value="connection_sent"${contact.connectionStatus==='connection_sent'?' selected':''}>connection_sent</option>
+      <option value="connected"${contact.connectionStatus==='connected'?' selected':''}>connected</option>
+    </select>
+
     <div id="lcrm-badge-status" style="font-size:11px;color:#22d3ee;text-align:center;margin-bottom:8px;min-height:14px;"></div>
     <button id="lcrm-badge-save" style="width:100%;background:#2563eb;border:none;border-radius:6px;padding:8px;color:white;font-weight:600;cursor:pointer;">
       Save to CRM
@@ -1195,13 +1207,16 @@ async function injectProfileBadge(contact) {
     btn.disabled = true;
     btn.textContent = 'Saving...';
     
+    // Read status from dropdown (overrides auto-detected connectionStatus)
+    const selectedStatus = badge.querySelector('#lcrm-badge-contact-status')?.value || currentProfileContact.connectionStatus || 'new';
+
     // Determine status to send
     const dataToSend = { 
       ...currentProfileContact, 
       name: customName, 
       headline: customHeadline,
       company: customCompany,
-      status: currentProfileContact.connectionStatus || 'new',
+      status: selectedStatus,
       pipelineId: pipelineId || null
     };
     
