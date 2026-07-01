@@ -1,4 +1,4 @@
-const API_BASE = 'https://linkedin-crm-y0bz.onrender.com/api';
+const API_BASE = 'http://localhost:4000/api';
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 async function getToken() {
@@ -205,7 +205,7 @@ function renderGroupsList() {
           <div class="group-count">${g.contactCount ?? 0} contacts</div>
         </div>
       </div>
-      <a class="group-open" href="https://warmdm.vercel.app/groups/${g._id}" target="_blank">Open →</a>
+      <a class="group-open" href="http://localhost:3000/groups/${g._id}" target="_blank">Open →</a>
     </div>
   `).join('');
 }

@@ -2,7 +2,7 @@
  * LinkedIn CRM — Background Service Worker
  */
 
-const API_BASE = 'https://linkedin-crm-y0bz.onrender.com/api';
+const API_BASE = 'http://localhost:4000/api';
 
 let campaign = null;
 
@@ -108,7 +108,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     case 'OPEN_ADD_TO_GROUP':
       chrome.storage.local.get(['dashboardUrl'], ({ dashboardUrl }) => {
-        const base = dashboardUrl || 'https://warmdm.vercel.app';
+        const base = dashboardUrl || 'http://localhost:3000';
         chrome.tabs.create({
           url: `${base}/contacts/add?name=${encodeURIComponent(msg.data.username || msg.data.name)}&url=${encodeURIComponent(msg.data.profileUrl)}`,
         });

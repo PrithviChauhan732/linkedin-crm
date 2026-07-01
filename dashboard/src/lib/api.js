@@ -1,4 +1,4 @@
-let rawBase = process.env.NEXT_PUBLIC_API_URL || 'https://linkedin-crm-y0bz.onrender.com/api';
+let rawBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 rawBase = rawBase.trim().replace(/\/+$/, '');
 const BASE = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
 
