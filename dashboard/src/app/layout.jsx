@@ -102,6 +102,16 @@ export default function RootLayout({ children }) {
       }
     }
     setLoading(false);
+
+    // Listen for requests from the extension to sync token
+    const handleExtensionRequest = (e) => {
+      if (e.data?.lcrmRequestToken) {
+        const activeToken = localStorage.getItem('warmdm_token');
+        window.postMessage({ lcrm: true, payload: { type: 'SAVE_TOKEN', token: activeToken } }, '*');
+      }
+    };
+    window.addEventListener('message', handleExtensionRequest);
+    return () => window.removeEventListener('message', handleExtensionRequest);
   }, []);
 
   function handleLogout() {
