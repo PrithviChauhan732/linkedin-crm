@@ -26,5 +26,10 @@ I have successfully implemented all requested features to elevate your CRM pipel
 - **Pipeline Mover:** Clicking any outcome node (e.g., "Interested") opens a right-hand sidebar where you can edit contacts and move them directly to other pipelines or stages.
 - **Campaign Triggering:** The "Trigger Campaign" interface is visually baked directly into the connection flow below the `Connected` node. Select a campaign, hit Run, and watch the prospects visually flow down into the `Outreach Sent` node.
 
+## 5. Full Profile Fields Scraping
+- **Overlay Scraper:** In addition to standard fields (name, headline, company, location), the extension now executes an background network request to the LinkedIn contact info overlay (`/overlay/contact-info/`) when viewing any profile.
+- **Deep Fields Extraction:** It automatically parses the response to scrape **Email addresses**, **Phone numbers**, and **Websites** without needing to open the overlay visually.
+- **Social Context:** It also extracts **Mutual Connections** and **Recent Post Topics** from the profile feed, providing complete lead profiles immediately inside the CRM.
+
 > [!TIP]
 > The extension zip file has been updated. You can upload `warmdm-extension.zip` to your Chrome extensions page and reload it to experience the new inline widget and connection syncing!

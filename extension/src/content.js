@@ -756,6 +756,56 @@ function getConnectionStatus() {
   return 'new';
 }
 
+async function fetchContactInfo(contact) {
+  try {
+    const url = window.location.href.split('?')[0].replace(/\/+$/, '') + '/overlay/contact-info/';
+    const res = await fetch(url);
+    if (!res.ok) return contact;
+    const html = await res.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    const sections = Array.from(doc.querySelectorAll('section'));
+    let email = '';
+    let phone = '';
+    let website = '';
+    
+    sections.forEach(sec => {
+      const text = sec.textContent || '';
+      const h3 = (sec.querySelector('h3') || sec.querySelector('h4') || sec.querySelector('header') || sec.querySelector('.pv-contact-info__header'))?.textContent || '';
+      
+      if (h3.includes('Email') || text.includes('Email') || sec.className.includes('email')) {
+        const mailto = sec.querySelector('a[href^="mailto:"]');
+        if (mailto) email = mailto.textContent.trim();
+      }
+      if (h3.includes('Phone') || text.includes('Phone') || sec.className.includes('phone')) {
+        const phoneSpan = sec.querySelector('ul li span') || sec.querySelector('span');
+        if (phoneSpan) phone = phoneSpan.textContent.trim();
+      }
+      if (h3.includes('Website') || text.includes('Website') || sec.className.includes('website')) {
+        const webLink = sec.querySelector('a');
+        if (webLink) {
+          let link = webLink.href;
+          try {
+            const parsed = new URL(link);
+            if (parsed.searchParams.has('url')) {
+              link = parsed.searchParams.get('url');
+            }
+          } catch(e) {}
+          website = link;
+        }
+      }
+    });
+    
+    if (email) contact.email = email;
+    if (phone) contact.phone = phone;
+    if (website) contact.website = website;
+  } catch (err) {
+    console.error('Error fetching contact info overlay:', err);
+  }
+  return contact;
+}
+
 function enrichFromDOM(contact, attempt = 0) {
   const currentUsername = window.location.href.match(/linkedin\.com\/in\/([^/?#]+)/)?.[1];
   if (currentUsername !== contact.username) return;
@@ -766,24 +816,63 @@ function enrichFromDOM(contact, attempt = 0) {
   const location = (document.querySelector('.pv-text-details__left-panel .text-body-small.inline') || document.querySelector('[data-anonymize="location"]'))?.textContent?.trim() || '';
   const connectionStatus = getConnectionStatus();
 
-  if (name) {
-    contact.name = name; contact.headline = headline; contact.company = company; contact.connectionStatus = connectionStatus;
-    if (location) contact.location = location;
-    currentProfileContact = contact;
-    const badge = document.getElementById('lcrm-badge');
-    if (badge) {
-      const nameInput = badge.querySelector('#lcrm-badge-name-input');
-      if (nameInput) nameInput.value = name;
-    } else {
-      injectProfileBadge(contact);
+  // Scrape mutual connections
+  let mutualConnection = '';
+  const mutualEl = Array.from(document.querySelectorAll('a, span, p')).find(el => 
+    el.textContent.includes('mutual connection') || el.textContent.includes('Mutual connection')
+  );
+  if (mutualEl) {
+    mutualConnection = mutualEl.textContent.trim().replace(/\s+/g, ' ');
+  }
+
+  // Scrape recent post topic
+  let recentPostTopic = '';
+  const postEl = document.querySelector('.feed-shared-update-v2__description-text, .pv-recent-activity-detail__text, .pv-recent-activity-detail__title');
+  if (postEl) {
+    recentPostTopic = postEl.textContent.trim().replace(/\s+/g, ' ');
+    if (recentPostTopic.length > 100) {
+      recentPostTopic = recentPostTopic.substring(0, 97) + '...';
     }
-    safeSend({ type: 'PROFILE_VIEWED', data: contact });
+  }
+
+  if (name) {
+    contact.name = name; 
+    contact.headline = headline; 
+    contact.company = company; 
+    contact.connectionStatus = connectionStatus;
+    if (location) contact.location = location;
+    if (mutualConnection) contact.mutualConnection = mutualConnection;
+    if (recentPostTopic) contact.recentPostTopic = recentPostTopic;
+    
+    // Inject badge immediately
+    injectProfileBadge(contact);
+    
+    // Background fetch contact info overlay
+    fetchContactInfo(contact).then((enrichedContact) => {
+      currentProfileContact = enrichedContact;
+      safeSend({ type: 'PROFILE_VIEWED', data: enrichedContact });
+    }).catch(() => {
+      currentProfileContact = contact;
+      safeSend({ type: 'PROFILE_VIEWED', data: contact });
+    });
   } else if (attempt < 25) {
     setTimeout(() => enrichFromDOM(contact, attempt + 1), 350);
   } else {
-    if (headline) { contact.headline = headline; contact.company = company; contact.connectionStatus = connectionStatus; if (location) contact.location = location; }
-    currentProfileContact = contact;
-    safeSend({ type: 'PROFILE_VIEWED', data: contact });
+    if (headline) { 
+      contact.headline = headline; 
+      contact.company = company; 
+      contact.connectionStatus = connectionStatus; 
+      if (location) contact.location = location;
+      if (mutualConnection) contact.mutualConnection = mutualConnection;
+      if (recentPostTopic) contact.recentPostTopic = recentPostTopic;
+    }
+    fetchContactInfo(contact).then((enrichedContact) => {
+      currentProfileContact = enrichedContact;
+      safeSend({ type: 'PROFILE_VIEWED', data: enrichedContact });
+    }).catch(() => {
+      currentProfileContact = contact;
+      safeSend({ type: 'PROFILE_VIEWED', data: contact });
+    });
   }
 }
 
