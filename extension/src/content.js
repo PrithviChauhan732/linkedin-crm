@@ -809,46 +809,77 @@ async function fetchContactInfo(contact) {
   return contact;
 }
 
-// ── Headline / Role (module scope so the patch interval can call them) ──────────
+// ── Headline / Role ──────────────────────────────────────────────────────────
+// Module-scope so the patch interval can call it without closure issues.
 function scrapeHeadline() {
-  const candidates = [
-    document.querySelector('.text-body-medium.break-words'),
-    document.querySelector('[data-anonymize="person-tagline"]'),
-    document.querySelector('.pv-text-details__left-panel .text-body-medium.break-words'),
-    document.querySelector('main .ph5 .text-body-medium.break-words'),
-    // Fallback: first text-body-medium NOT inside the right-panel (which is company)
-    ...Array.from(document.querySelectorAll('.text-body-medium')).filter(el =>
-      !el.closest('.pv-text-details__right-panel')
-    ),
+  // Strategy 1: explicit data-anonymize attr (LinkedIn A/B variant)
+  const tag = document.querySelector('[data-anonymize="person-tagline"]');
+  if (tag?.textContent?.trim()) return tag.textContent.trim();
+
+  // Strategy 2: the .break-words span directly after the h1 (most common)
+  const h1 = document.querySelector('h1');
+  if (h1) {
+    let sibling = h1.nextElementSibling;
+    while (sibling) {
+      const t = sibling.textContent?.trim();
+      if (t && t.length > 2) return t;
+      sibling = sibling.nextElementSibling;
+    }
+    // Also try the parent container's first eligible text node after h1
+    const parent = h1.parentElement;
+    if (parent) {
+      const kids = Array.from(parent.querySelectorAll('div, span')).filter(el => {
+        const t = el.textContent?.trim();
+        return t && t.length > 3 && !el.querySelector('h1') && el !== h1;
+      });
+      if (kids[0]?.textContent?.trim()) return kids[0].textContent.trim();
+    }
+  }
+
+  // Strategy 3: class-based selectors (several LinkedIn variants)
+  const selectors = [
+    '.text-body-medium.break-words',
+    '.pv-text-details__left-panel .text-body-medium',
+    'main .ph5 .text-body-medium',
+    '.artdeco-card .text-body-medium',
   ];
-  for (const el of candidates) {
+  for (const sel of selectors) {
+    const el = document.querySelector(sel);
     const t = el?.textContent?.trim();
     if (t && t.length > 2) return t;
   }
   return '';
 }
 
-// ── Company (module scope) ────────────────────────────────────────────────────
+// ── Company ───────────────────────────────────────────────────────────────────
 function scrapeCompany() {
-  // Right panel of top card (current company button)
+  // Strategy 1: explicit ARIA label
+  const ariaEl = document.querySelector('[aria-label*="Current company"], [aria-label*="current company"]');
+  if (ariaEl?.textContent?.trim()) return ariaEl.textContent.trim();
+
+  // Strategy 2: right panel of top card
   const rightPanel = document.querySelector('.pv-text-details__right-panel');
   if (rightPanel) {
-    // Try the button span inside right panel first
-    const btn = rightPanel.querySelector('button span:not(.visually-hidden), .hoverable-link-text span');
-    if (btn?.textContent?.trim()) return btn.textContent.trim();
-    // Fallback to first non-empty span text in right panel
-    const spans = Array.from(rightPanel.querySelectorAll('span')).filter(s =>
-      s.textContent.trim().length > 1 && !s.classList.contains('visually-hidden')
-    );
+    // spans with aria-hidden="true" are the visible text spans LinkedIn uses
+    const spans = Array.from(rightPanel.querySelectorAll('span[aria-hidden="true"]'))
+      .filter(s => s.textContent.trim().length > 1);
     if (spans[0]?.textContent?.trim()) return spans[0].textContent.trim();
+    // Generic span fallback
+    const allSpans = Array.from(rightPanel.querySelectorAll('span'))
+      .filter(s => !s.classList.contains('visually-hidden') && s.textContent.trim().length > 1);
+    if (allSpans[0]?.textContent?.trim()) return allSpans[0].textContent.trim();
   }
-  // Fallback: first experience list item company name
-  const expCompany = document.querySelector(
-    '.pvs-list__item--line-separated .hoverable-link-text span[aria-hidden="true"], ' +
-    '.experience-section .pv-entity__secondary-title span:last-child, ' +
-    '.pv-profile-section .pv-entity__company-summary-info h3 span:last-child'
-  );
-  if (expCompany?.textContent?.trim()) return expCompany.textContent.trim();
+
+  // Strategy 3: "Works at" or experience section
+  const expSelectors = [
+    '.pvs-list__item--line-separated .hoverable-link-text span[aria-hidden="true"]',
+    '.pv-profile-section__card-item .pv-entity__secondary-title span:last-child',
+    '.experience-section .pv-entity__company-summary-info h3 span:last-child',
+  ];
+  for (const sel of expSelectors) {
+    const el = document.querySelector(sel);
+    if (el?.textContent?.trim()) return el.textContent.trim();
+  }
   return '';
 }
 
@@ -918,13 +949,11 @@ function enrichFromDOM(contact, attempt = 0) {
       }, 600);
     }
     
-    // Background fetch contact info overlay
+    // Enrich with contact-info overlay (email/phone) but do NOT auto-save to backend
     fetchContactInfo(contact).then((enrichedContact) => {
       currentProfileContact = enrichedContact;
-      safeSend({ type: 'PROFILE_VIEWED', data: enrichedContact });
     }).catch(() => {
       currentProfileContact = contact;
-      safeSend({ type: 'PROFILE_VIEWED', data: contact });
     });
   } else if (attempt < 25) {
     setTimeout(() => enrichFromDOM(contact, attempt + 1), 350);
@@ -941,40 +970,36 @@ function enrichFromDOM(contact, attempt = 0) {
     injectProfileBadge(contact);
     fetchContactInfo(contact).then((enrichedContact) => {
       currentProfileContact = enrichedContact;
-      safeSend({ type: 'PROFILE_VIEWED', data: enrichedContact });
     }).catch(() => {
       currentProfileContact = contact;
-      safeSend({ type: 'PROFILE_VIEWED', data: contact });
     });
   }
 }
 
-async function injectProfileBadge(contact, tokenRetry = 0) {
+async function injectProfileBadge(contact) {
   document.getElementById('lcrm-badge')?.remove();
-  
+
   let campaigns = [];
   let groups    = [];
   let pipelines = [];
+
+  // Try to fetch dropdowns — proceed immediately regardless
   try {
-    // Wait for token to be available (retry up to 10 times, 1s apart)
     const { token } = await new Promise(r => chrome.storage.local.get('token', r));
-    if (!token && tokenRetry < 10) {
-      console.log('[WarmDM] Token not ready yet, retrying badge in 1s...');
-      setTimeout(() => injectProfileBadge(contact, tokenRetry + 1), 1000);
-      return;
-    }
-    await new Promise(resolve => {
-      safeSend({ type: 'FETCH_API', path: '/campaigns' }, cRes => {
-        campaigns = cRes?.data?.campaigns || [];
-        safeSend({ type: 'FETCH_API', path: '/groups' }, gRes => {
-          groups = gRes?.data?.groups || [];
-          safeSend({ type: 'FETCH_API', path: '/pipelines' }, pRes => {
-            pipelines = pRes?.data?.pipelines || [];
-            resolve();
+    if (token) {
+      await new Promise(resolve => {
+        safeSend({ type: 'FETCH_API', path: '/campaigns' }, cRes => {
+          campaigns = cRes?.data?.campaigns || [];
+          safeSend({ type: 'FETCH_API', path: '/groups' }, gRes => {
+            groups = gRes?.data?.groups || [];
+            safeSend({ type: 'FETCH_API', path: '/pipelines' }, pRes => {
+              pipelines = pRes?.data?.pipelines || [];
+              resolve();
+            });
           });
         });
       });
-    });
+    }
   } catch (err) {
     console.error('[WarmDM] Error loading options:', err);
   }
@@ -1036,6 +1061,46 @@ async function injectProfileBadge(contact, tokenRetry = 0) {
   `;
 
   document.body.appendChild(badge);
+
+  // If dropdowns were empty (token not ready), retry populating them after 2s
+  if (!campaigns.length && !groups.length && !pipelines.length) {
+    setTimeout(async () => {
+      const badgeEl = document.getElementById('lcrm-badge');
+      if (!badgeEl) return; // badge was closed
+      try {
+        const { token } = await new Promise(r => chrome.storage.local.get('token', r));
+        if (!token) return;
+        await new Promise(resolve => {
+          safeSend({ type: 'FETCH_API', path: '/campaigns' }, cRes => {
+            const freshCampaigns = cRes?.data?.campaigns || [];
+            safeSend({ type: 'FETCH_API', path: '/groups' }, gRes => {
+              const freshGroups = gRes?.data?.groups || [];
+              safeSend({ type: 'FETCH_API', path: '/pipelines' }, pRes => {
+                const freshPipelines = pRes?.data?.pipelines || [];
+                // Patch selects in-place
+                const pSel = badgeEl.querySelector('#lcrm-badge-pipeline');
+                const gSel = badgeEl.querySelector('#lcrm-badge-group');
+                const cSel = badgeEl.querySelector('#lcrm-badge-campaign');
+                if (pSel && freshPipelines.length) {
+                  pSel.innerHTML = '<option value="">— No Pipeline —</option>' +
+                    freshPipelines.map(p => `<option value="${p._id}"${p.isDefault ? ' selected' : ''}>${p.name}${p.isDefault ? ' (Default)' : ''}</option>`).join('');
+                }
+                if (gSel && freshGroups.length) {
+                  gSel.innerHTML = '<option value="">— No Group —</option>' +
+                    freshGroups.map(g => `<option value="${g._id}">${g.name}</option>`).join('');
+                }
+                if (cSel && freshCampaigns.length) {
+                  cSel.innerHTML = '<option value="">— No Campaign —</option>' +
+                    freshCampaigns.map(c => `<option value="${c._id}">${c.name}</option>`).join('');
+                }
+                resolve();
+              });
+            });
+          });
+        });
+      } catch (e) { /* silently ignore */ }
+    }, 2000);
+  }
 
   badge.querySelector('#lcrm-badge-close').onclick = () => badge.remove();
   badge.querySelector('#lcrm-badge-save').onclick = () => {
