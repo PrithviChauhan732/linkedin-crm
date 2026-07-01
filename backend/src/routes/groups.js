@@ -15,8 +15,16 @@ router.get('/', async (req, res) => {
 
 // POST /api/groups
 router.post('/', async (req, res) => {
-  const group = await Group.create({ ...req.body, user: req.user.id });
-  res.status(201).json({ group });
+  try {
+    const { name, color } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: 'Group name is required' });
+    }
+    const group = await Group.create({ name, color, user: req.user.id });
+    res.status(201).json({ group });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // GET /api/groups/:id/contacts

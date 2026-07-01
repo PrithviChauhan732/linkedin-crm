@@ -15,46 +15,65 @@ const DEFAULT_STAGES = [
 
 // GET /api/pipelines — List all pipelines (seeds default per user if none exist)
 router.get('/', async (req, res) => {
-  let pipelines = await Pipeline.find({ user: req.user.id }).sort({ createdAt: 1 });
-  if (pipelines.length === 0) {
-    const defaultPipeline = await Pipeline.create({
-      name: 'Default Outreach Pipeline',
-      description: 'Standard multi-stage cold DM conversion pipeline',
-      isDefault: true,
-      stages: DEFAULT_STAGES,
-      user: req.user.id,
-    });
-    pipelines = [defaultPipeline];
+  try {
+    let pipelines = await Pipeline.find({ user: req.user.id }).sort({ createdAt: 1 });
+    if (pipelines.length === 0) {
+      const defaultPipeline = await Pipeline.create({
+        name: 'Default Outreach Pipeline',
+        description: 'Standard multi-stage cold DM conversion pipeline',
+        isDefault: true,
+        stages: DEFAULT_STAGES,
+        user: req.user.id,
+      });
+      pipelines = [defaultPipeline];
+    }
+    res.json({ pipelines });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-  res.json({ pipelines });
 });
 
 // POST /api/pipelines — Create a custom pipeline
 router.post('/', async (req, res) => {
-  const { name, description, stages } = req.body;
-  const pipeline = await Pipeline.create({
-    name,
-    description: description || '',
-    stages: stages && stages.length > 0 ? stages : DEFAULT_STAGES,
-    user: req.user.id,
-  });
-  res.status(201).json({ pipeline });
+  try {
+    const { name, description, stages } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: 'Pipeline name is required' });
+    }
+    const pipeline = await Pipeline.create({
+      name,
+      description: description || '',
+      stages: stages && stages.length > 0 ? stages : DEFAULT_STAGES,
+      user: req.user.id,
+    });
+    res.status(201).json({ pipeline });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // PATCH /api/pipelines/:id — Update pipeline name or stages
 router.patch('/:id', async (req, res) => {
-  const pipeline = await Pipeline.findOneAndUpdate({ _id: req.params.id, user: req.user.id }, req.body, { new: true });
-  res.json({ pipeline });
+  try {
+    const pipeline = await Pipeline.findOneAndUpdate({ _id: req.params.id, user: req.user.id }, req.body, { new: true });
+    res.json({ pipeline });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // DELETE /api/pipelines/:id
 router.delete('/:id', async (req, res) => {
-  const pipeline = await Pipeline.findOne({ _id: req.params.id, user: req.user.id });
-  if (pipeline?.isDefault) {
-    return res.status(400).json({ error: 'Cannot delete the default pipeline' });
+  try {
+    const pipeline = await Pipeline.findOne({ _id: req.params.id, user: req.user.id });
+    if (pipeline?.isDefault) {
+      return res.status(400).json({ error: 'Cannot delete the default pipeline' });
+    }
+    await Pipeline.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-  await Pipeline.findOneAndDelete({ _id: req.params.id, user: req.user.id });
-  res.json({ ok: true });
 });
 
 // POST /api/pipelines/:id/stages/:stageId/steps — add a step to a stage's follow-up chain
