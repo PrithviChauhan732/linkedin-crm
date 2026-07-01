@@ -721,7 +721,7 @@ function setupProfilePage() {
   currentProfileContact = {
     name: username, headline: '', profileUrl: `https://www.linkedin.com/in/${username}`, username, addedAt: new Date().toISOString(),
   };
-  injectProfileBadge(currentProfileContact);
+  // Don't inject badge yet — enrichFromDOM calls injectProfileBadge once name/role/company are scraped
   enrichFromDOM(currentProfileContact);
 }
 
@@ -860,7 +860,7 @@ function enrichFromDOM(contact, attempt = 0) {
     if (mutualConnection) contact.mutualConnection = mutualConnection;
     if (recentPostTopic) contact.recentPostTopic = recentPostTopic;
     
-    // Inject badge immediately
+    // Re-inject badge with enriched data (name/role/company now populated)
     injectProfileBadge(contact);
     
     // Background fetch contact info overlay
@@ -882,6 +882,8 @@ function enrichFromDOM(contact, attempt = 0) {
       if (mutualConnection) contact.mutualConnection = mutualConnection;
       if (recentPostTopic) contact.recentPostTopic = recentPostTopic;
     }
+    // Inject badge even in fallback case so widget always appears
+    injectProfileBadge(contact);
     fetchContactInfo(contact).then((enrichedContact) => {
       currentProfileContact = enrichedContact;
       safeSend({ type: 'PROFILE_VIEWED', data: enrichedContact });
@@ -892,13 +894,20 @@ function enrichFromDOM(contact, attempt = 0) {
   }
 }
 
-async function injectProfileBadge(contact) {
+async function injectProfileBadge(contact, tokenRetry = 0) {
   document.getElementById('lcrm-badge')?.remove();
   
   let campaigns = [];
   let groups    = [];
   let pipelines = [];
   try {
+    // Wait for token to be available (retry up to 10 times, 1s apart)
+    const { token } = await new Promise(r => chrome.storage.local.get('token', r));
+    if (!token && tokenRetry < 10) {
+      console.log('[WarmDM] Token not ready yet, retrying badge in 1s...');
+      setTimeout(() => injectProfileBadge(contact, tokenRetry + 1), 1000);
+      return;
+    }
     await new Promise(resolve => {
       safeSend({ type: 'FETCH_API', path: '/campaigns' }, cRes => {
         campaigns = cRes?.data?.campaigns || [];

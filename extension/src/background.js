@@ -81,7 +81,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       return true;
 
     case 'FETCH_API':
-      syncToBackend(msg.path)
+      fetchFromBackend(msg.path)
         .then(res => sendResponse({ ok: true, data: res }))
         .catch(e => sendResponse({ error: e.message }));
       return true;
@@ -143,7 +143,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       getLinkedInTab().then(tab => {
         if (!tab) { sendResponse({ error: 'No LinkedIn tab' }); return; }
-        chrome.tabs.sendMessage(tab.id, payload, sendResponse);
+        chrome.tabs.sendMessage(tab.id, payload, (res) => {
+          if (chrome.runtime.lastError) {
+            sendResponse({ error: chrome.runtime.lastError.message });
+          } else {
+            sendResponse(res);
+          }
+        });
       });
       return true;
     }
@@ -225,10 +231,21 @@ chrome.alarms.create('poll-replies', { periodInMinutes: 5 });
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== 'poll-replies') return;
   const tab = await getLinkedInTab();
-  if (tab) chrome.tabs.sendMessage(tab.id, { type: 'GET_CONVERSATIONS' }, () => {});
+  if (tab) chrome.tabs.sendMessage(tab.id, { type: 'GET_CONVERSATIONS' }, () => {
+    void chrome.runtime.lastError; // suppress "receiving end does not exist" error
+  });
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+async function fetchFromBackend(path) {
+  const { token } = await chrome.storage.local.get('token');
+  if (!token) throw new Error('No auth token');
+  const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+  const res = await fetch(`${API_BASE}${path}`, { method: 'GET', headers });
+  if (!res.ok) throw new Error(`Backend ${res.status}`);
+  return res.json();
+}
+
 async function syncToBackend(path, data) {
   const { token } = await chrome.storage.local.get('token');
   const headers = { 'Content-Type': 'application/json' };
