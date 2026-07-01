@@ -10,8 +10,36 @@ router.get('/', async (req, res) => {
   try {
     const companies = await Company.find({ user: req.user.id })
       .populate('group', 'name color')
-      .sort({ addedAt: -1 });
+      .sort({ name: 1 });
     res.json({ companies });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/companies — quick create by name only (from extension widget)
+router.post('/', async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'name is required' });
+
+    const Group = require('../models/Group');
+    // Auto-create or reuse a Group with the same name
+    let group = await Group.findOne({ user: req.user.id, name: name.trim() });
+    if (!group) {
+      group = await Group.create({ user: req.user.id, name: name.trim(), color: '#0f766e' });
+    }
+
+    // Use a placeholder linkedinUrl so the unique index doesn't clash
+    const linkedinUrl = `https://www.linkedin.com/company/${encodeURIComponent(name.trim().toLowerCase().replace(/\s+/g, '-'))}-${Date.now()}`;
+    const company = await Company.create({
+      user: req.user.id,
+      name: name.trim(),
+      linkedinUrl,
+      group: group._id,
+    });
+
+    res.status(201).json({ company: { ...company.toObject(), group } });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

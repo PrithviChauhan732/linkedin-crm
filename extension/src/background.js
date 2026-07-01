@@ -81,7 +81,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       return true;
 
     case 'FETCH_API':
-      fetchFromBackend(msg.path)
+      fetchFromBackend(msg.path, msg.method || 'GET', msg.body)
         .then(res => sendResponse({ ok: true, data: res }))
         .catch(e => sendResponse({ error: e.message }));
       return true;
@@ -237,11 +237,13 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-async function fetchFromBackend(path) {
+async function fetchFromBackend(path, method = 'GET', body = null) {
   const { token } = await chrome.storage.local.get('token');
   if (!token) throw new Error('No auth token');
   const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-  const res = await fetch(`${API_BASE}${path}`, { method: 'GET', headers });
+  const opts = { method: method || 'GET', headers };
+  if (body && method !== 'GET') opts.body = JSON.stringify(body);
+  const res = await fetch(`${API_BASE}${path}`, opts);
   if (!res.ok) throw new Error(`Backend ${res.status}`);
   return res.json();
 }

@@ -982,6 +982,7 @@ async function injectProfileBadge(contact) {
   let campaigns = [];
   let groups    = [];
   let pipelines = [];
+  let companies = [];
 
   // Try to fetch dropdowns — proceed immediately regardless
   try {
@@ -994,7 +995,10 @@ async function injectProfileBadge(contact) {
             groups = gRes?.data?.groups || [];
             safeSend({ type: 'FETCH_API', path: '/pipelines' }, pRes => {
               pipelines = pRes?.data?.pipelines || [];
-              resolve();
+              safeSend({ type: 'FETCH_API', path: '/companies' }, coRes => {
+                companies = coRes?.data?.companies || [];
+                resolve();
+              });
             });
           });
         });
@@ -1024,6 +1028,14 @@ async function injectProfileBadge(contact) {
     return `<option value="${p._id}" ${selected}>${p.name}${p.isDefault ? ' (Default)' : ''}</option>`;
   }).join('');
 
+  // Company dropdown — auto-match scraped company name against existing companies
+  const scrapedCompany = contact.company || '';
+  const matchedCompany = companies.find(c => c.name.toLowerCase() === scrapedCompany.toLowerCase());
+  const companyOptions = companies.map(c => {
+    const selected = (matchedCompany && c._id === matchedCompany._id) ? 'selected' : '';
+    return `<option value="${c._id}" ${selected}>${c.name}</option>`;
+  }).join('');
+
   badge.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;">
       <input type="text" id="lcrm-badge-name-input" value="${escapeHtml(contact.name)}" style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px;color:#f8fafc;font-size:12px;font-weight:600;outline:none;flex:1;min-width:0;" />
@@ -1034,7 +1046,12 @@ async function injectProfileBadge(contact) {
     <input type="text" id="lcrm-badge-headline-input" value="${escapeHtml(contact.headline || '')}" placeholder="e.g. Sales Leader" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px;color:#cbd5e1;font-size:12px;margin-bottom:12px;outline:none;" />
 
     <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px;display:block;">Company</label>
-    <input type="text" id="lcrm-badge-company-input" value="${escapeHtml(contact.company || '')}" placeholder="e.g. Acme Corp" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px;color:#cbd5e1;font-size:12px;margin-bottom:12px;outline:none;" />
+    <select id="lcrm-badge-company-select" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px;color:#e2e8f0;font-size:12px;margin-bottom:6px;outline:none;">
+      <option value="">— No Company —</option>
+      ${companyOptions}
+      <option value="__create__">➕ Create new company…</option>
+    </select>
+    <input type="text" id="lcrm-badge-company-new" placeholder="Enter company name" style="display:none;width:100%;background:#1e293b;border:1px solid #f59e0b;border-radius:6px;padding:6px;color:#fbbf24;font-size:12px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
     
     <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px;display:block;">Pipeline</label>
     <select id="lcrm-badge-pipeline" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px;color:#e2e8f0;font-size:12px;margin-bottom:12px;outline:none;">
@@ -1103,7 +1120,20 @@ async function injectProfileBadge(contact) {
   }
 
   badge.querySelector('#lcrm-badge-close').onclick = () => badge.remove();
-  badge.querySelector('#lcrm-badge-save').onclick = () => {
+
+  // Show/hide "Create new company" input when "➕ Create new company…" is selected
+  badge.querySelector('#lcrm-badge-company-select').onchange = function() {
+    const newInput = badge.querySelector('#lcrm-badge-company-new');
+    if (this.value === '__create__') {
+      newInput.style.display = 'block';
+      newInput.style.marginBottom = '12px';
+      newInput.focus();
+    } else {
+      newInput.style.display = 'none';
+    }
+  };
+
+  badge.querySelector('#lcrm-badge-save').onclick = async () => {
     const groupId = badge.querySelector('#lcrm-badge-group').value;
     const campaignId = badge.querySelector('#lcrm-badge-campaign').value;
     const pipelineId = badge.querySelector('#lcrm-badge-pipeline').value;
@@ -1111,7 +1141,56 @@ async function injectProfileBadge(contact) {
     const btn = badge.querySelector('#lcrm-badge-save');
     const customName = badge.querySelector('#lcrm-badge-name-input')?.value?.trim() || contact.name;
     const customHeadline = badge.querySelector('#lcrm-badge-headline-input')?.value?.trim() || contact.headline;
-    const customCompany = badge.querySelector('#lcrm-badge-company-input')?.value?.trim() || contact.company;
+    const companySelect = badge.querySelector('#lcrm-badge-company-select');
+    const companyNewInput = badge.querySelector('#lcrm-badge-company-new');
+    const selectedCompanyId = companySelect?.value;
+
+    let customCompany = contact.company;
+    let resolvedCompanyId = null;
+
+    if (selectedCompanyId === '__create__') {
+      const newName = companyNewInput?.value?.trim();
+      if (!newName) {
+        statusEl.textContent = '⚠ Please enter a company name';
+        statusEl.style.color = '#f59e0b';
+        return;
+      }
+      // Create company via backend
+      btn.disabled = true;
+      btn.textContent = 'Creating company...';
+      try {
+        const createRes = await new Promise(resolve => {
+          safeSend({ type: 'FETCH_API', path: '/companies', method: 'POST', body: { name: newName } }, resolve);
+        });
+        if (createRes?.data?.company) {
+          customCompany = createRes.data.company.name;
+          resolvedCompanyId = createRes.data.company._id;
+          // Update the select to show the newly created company
+          const newOpt = document.createElement('option');
+          newOpt.value = resolvedCompanyId;
+          newOpt.textContent = customCompany;
+          newOpt.selected = true;
+          companySelect.insertBefore(newOpt, companySelect.querySelector('option[value="__create__"]'));
+          companySelect.value = resolvedCompanyId;
+          companyNewInput.style.display = 'none';
+        } else {
+          statusEl.textContent = createRes?.error || 'Failed to create company';
+          statusEl.style.color = '#f87171';
+          btn.disabled = false;
+          btn.textContent = 'Retry';
+          return;
+        }
+      } catch (e) {
+        statusEl.textContent = 'Error creating company';
+        statusEl.style.color = '#f87171';
+        btn.disabled = false;
+        btn.textContent = 'Retry';
+        return;
+      }
+    } else if (selectedCompanyId && selectedCompanyId !== '') {
+      customCompany = companySelect?.selectedOptions?.[0]?.textContent?.trim() || contact.company;
+      resolvedCompanyId = selectedCompanyId;
+    }
     
     btn.disabled = true;
     btn.textContent = 'Saving...';
@@ -1128,7 +1207,7 @@ async function injectProfileBadge(contact) {
     
     safeSend({ type: 'ADD_PEOPLE_TO_CRM', data: {
       contacts: [dataToSend],
-      groupId: groupId || null,
+      groupId: groupId || resolvedCompanyId || null,
       campaignId: campaignId || null
     }}, res => {
       if (res?.ok) {
