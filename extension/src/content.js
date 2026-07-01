@@ -36,8 +36,16 @@ function isContextValid() {
   try { return !!chrome.runtime?.id; } catch { return false; }
 }
 
-function safeSend(msg) {
-  try { if (isContextValid()) chrome.runtime.sendMessage(msg); } catch {}
+function safeSend(msg, callback) {
+  try {
+    if (isContextValid()) {
+      if (callback) {
+        chrome.runtime.sendMessage(msg, callback);
+      } else {
+        chrome.runtime.sendMessage(msg);
+      }
+    }
+  } catch {}
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
