@@ -228,6 +228,7 @@ router.post('/upsert-batch', async (req, res) => {
         headline:   c.headline   || '',
         company:    c.company    || '',
         profileUrl: c.profileUrl || '',
+        ...(c.pipelineId && { pipelineId: c.pipelineId }),
         ...(groupId && { $addToSet: { groups: groupId } }),
       };
 

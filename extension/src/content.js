@@ -881,17 +881,22 @@ async function injectProfileBadge(contact) {
   
   let campaigns = [];
   let groups    = [];
+  let pipelines = [];
   try {
     const { token } = await new Promise(r => chrome.storage.local.get('token', r));
     if (token) {
-      const [cRes, gRes] = await Promise.all([
+      const [cRes, gRes, pRes] = await Promise.all([
         fetch(`${API_BASE}/campaigns`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_BASE}/groups`,    { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/pipelines`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       campaigns = (await cRes.json()).campaigns || [];
       groups    = (await gRes.json()).groups    || [];
+      pipelines = (await pRes.json()).pipelines || [];
     }
-  } catch {}
+  } catch (err) {
+    console.error('[WarmDM] Error loading options:', err);
+  }
 
   const badge = document.createElement('div');
   badge.id = 'lcrm-badge';
@@ -908,6 +913,10 @@ async function injectProfileBadge(contact) {
     const selected = (contact.company && g.name.toLowerCase() === contact.company.toLowerCase()) ? 'selected' : '';
     return `<option value="${g._id}" ${selected}>${g.name}</option>`;
   }).join('');
+  const pipelineOptions = pipelines.map(p => {
+    const selected = p.isDefault ? 'selected' : '';
+    return `<option value="${p._id}" ${selected}>${p.name}${p.isDefault ? ' (Default)' : ''}</option>`;
+  }).join('');
 
   badge.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;">
@@ -915,6 +924,12 @@ async function injectProfileBadge(contact) {
       <button id="lcrm-badge-close" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:16px;">✕</button>
     </div>
     
+    <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px;display:block;">Pipeline</label>
+    <select id="lcrm-badge-pipeline" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px;color:#e2e8f0;font-size:12px;margin-bottom:12px;outline:none;">
+      <option value="">— No Pipeline —</option>
+      ${pipelineOptions}
+    </select>
+
     <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px;display:block;">Group</label>
     <select id="lcrm-badge-group" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px;color:#e2e8f0;font-size:12px;margin-bottom:12px;outline:none;">
       <option value="">— No Group —</option>
@@ -939,6 +954,7 @@ async function injectProfileBadge(contact) {
   badge.querySelector('#lcrm-badge-save').onclick = () => {
     const groupId = badge.querySelector('#lcrm-badge-group').value;
     const campaignId = badge.querySelector('#lcrm-badge-campaign').value;
+    const pipelineId = badge.querySelector('#lcrm-badge-pipeline').value;
     const statusEl = badge.querySelector('#lcrm-badge-status');
     const btn = badge.querySelector('#lcrm-badge-save');
     const customName = badge.querySelector('#lcrm-badge-name-input')?.value?.trim() || contact.name;
@@ -950,7 +966,8 @@ async function injectProfileBadge(contact) {
     const dataToSend = { 
       ...currentProfileContact, 
       name: customName, 
-      status: currentProfileContact.connectionStatus || 'new' 
+      status: currentProfileContact.connectionStatus || 'new',
+      pipelineId: pipelineId || null
     };
     
     safeSend({ type: 'ADD_PEOPLE_TO_CRM', data: {

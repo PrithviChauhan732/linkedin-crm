@@ -10,3 +10,13 @@ window.addEventListener('message', (event) => {
     window.postMessage({ lcrmResponse: true, id, response: null }, '*');
   }
 });
+
+// Automatically sync token from localStorage to extension storage on load
+try {
+  const token = window.localStorage.getItem('warmdm_token');
+  if (token) {
+    chrome.runtime.sendMessage({ type: 'SAVE_TOKEN', token });
+  }
+} catch (e) {
+  console.error('[WarmDM] Failed to auto-sync token from localStorage:', e);
+}
