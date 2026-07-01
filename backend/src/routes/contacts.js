@@ -198,7 +198,8 @@ router.post('/:id/remove-from-group', async (req, res) => {
 // Used by the extension People scraper to save a batch of people from a company page.
 router.post('/upsert-batch', async (req, res) => {
   try {
-    const { contacts: batch, groupId, campaignId } = req.body;
+    const { contacts, people, groupId, campaignId } = req.body;
+    const batch = contacts || people;
     if (!Array.isArray(batch) || batch.length === 0) return res.status(400).json({ error: 'contacts array required' });
 
     const results = await Promise.all(batch.map(async (c) => {

@@ -514,7 +514,7 @@ function injectPeoplePanel(people, companyName, campaigns, groups) {
     btn.disabled    = true;
     statusEl.textContent = '';
 
-    safeSend({ type: 'ADD_PEOPLE_TO_CRM', data: { people: checked, campaignId, groupId } });
+    safeSend({ type: 'ADD_PEOPLE_TO_CRM', data: { contacts: checked, campaignId, groupId } });
 
     statusEl.textContent = `${checked.length} contacts saved!`;
     btn.textContent = 'Saved';
@@ -864,7 +864,7 @@ async function injectProfileBadge(contact) {
     };
     
     safeSend({ type: 'ADD_PEOPLE_TO_CRM', data: {
-      people: [dataToSend],
+      contacts: [dataToSend],
       groupId: groupId || null,
       campaignId: campaignId || null
     }}, res => {
