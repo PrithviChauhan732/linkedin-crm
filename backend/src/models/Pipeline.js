@@ -13,7 +13,7 @@ const PipelineSchema = new mongoose.Schema({
   description: { type: String },
   isDefault:   { type: Boolean, default: false },
   stages:      [StageSchema],
-  followUps:   { type: Map, of: [String], default: {} },
+  followUps:   { type: Map, of: mongoose.Schema.Types.Mixed, default: {} },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Pipeline', PipelineSchema);

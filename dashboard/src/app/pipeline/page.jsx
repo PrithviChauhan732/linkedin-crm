@@ -36,6 +36,14 @@ export default function PipelinePage() {
   const [mlTestResult, setMlTestResult] = useState(null);
   const [isTestingMl, setIsTestingMl] = useState(false);
 
+  // Step Builder Modal State
+  const [stepModalConfig, setStepModalConfig] = useState(null);
+  const [stepType, setStepType] = useState('campaign');
+  const [stepLabel, setStepLabel] = useState('');
+  const [stepCampaignId, setStepCampaignId] = useState('');
+  const [stepTargetStage, setStepTargetStage] = useState('');
+  const [stepDelayDays, setStepDelayDays] = useState(1);
+
   const activePipeline = pipelines.find(p => p._id === activePipelineId) || pipelines[0] || {};
 
   // Fetch contacts scoped by the active pipeline
@@ -94,10 +102,43 @@ export default function PipelinePage() {
     mutateContacts();
   }
 
-  async function addStep(stageId) {
-    const step = prompt("Enter the follow-up step description (e.g. 'Send Calendar Link'):");
-    if (!step || !step.trim()) return;
-    await post(`/pipelines/${activePipeline._id}/stages/${stageId}/steps`, { step: step.trim() });
+  async function moveAllStageContacts(fromStage, toStage) {
+    const contactIds = getContacts(fromStage).map(c => c._id);
+    if (contactIds.length === 0) return alert('No contacts in this stage to move.');
+    if (!confirm(`Move all ${contactIds.length} prospects to ${STAGE_CONFIG[toStage]?.label || toStage}?`)) return;
+    
+    await Promise.all(contactIds.map(id => patch(`/contacts/${id}`, { status: toStage })));
+    mutateContacts();
+  }
+
+  function addStep(stageId) {
+    setStepModalConfig({ stageId });
+    setStepType('campaign');
+    setStepLabel('');
+    setStepCampaignId('');
+    setStepTargetStage('');
+    setStepDelayDays(1);
+  }
+
+  async function handleSaveStep(e) {
+    e.preventDefault();
+    if (!stepLabel.trim()) return alert('Step name/label is required');
+
+    const stepData = {
+      type: stepType,
+      label: stepLabel.trim(),
+    };
+
+    if (stepType === 'campaign') {
+      stepData.campaignId = stepCampaignId;
+    } else if (stepType === 'move_stage') {
+      stepData.targetStage = stepTargetStage;
+    } else if (stepType === 'wait') {
+      stepData.delayDays = Number(stepDelayDays) || 1;
+    }
+
+    await post(`/pipelines/${activePipeline._id}/stages/${stepModalConfig.stageId}/steps`, { step: stepData });
+    setStepModalConfig(null);
     mutatePipelines();
   }
 
@@ -275,8 +316,24 @@ export default function PipelinePage() {
                     
                     {/* Visual custom follow-up chains */}
                     {steps.map((step, idx) => {
-                      const selectId = `campaign-select-${intent}-${idx}`;
+                      const isObject = typeof step === 'object' && step !== null;
+                      const type = isObject ? step.type : 'campaign';
+                      const label = isObject ? step.label : step;
                       const count = getContacts(intent).length;
+                      
+                      let headerLabel = '✉️ Campaign';
+                      let headerColor = 'text-indigo-600 bg-indigo-50 border-indigo-100';
+                      if (type === 'move_stage') {
+                        headerLabel = '🔄 Move Stage';
+                        headerColor = 'text-amber-700 bg-amber-50 border-amber-100';
+                      } else if (type === 'wait') {
+                        headerLabel = '⏱️ Delay';
+                        headerColor = 'text-teal-700 bg-teal-50 border-teal-100';
+                      } else if (type === 'task') {
+                        headerLabel = '📋 Task';
+                        headerColor = 'text-slate-600 bg-slate-50 border-slate-100';
+                      }
+
                       return (
                         <div key={idx} className="flex flex-col items-center w-full animate-in slide-in-from-top-3 duration-250">
                           {/* vertical line */}
@@ -284,8 +341,10 @@ export default function PipelinePage() {
                           {/* Step Card */}
                           <div className="relative group bg-white border border-slate-200 rounded-xl p-3 shadow-sm w-44 flex flex-col gap-2">
                             {/* Header & Delete */}
-                            <div className="flex items-start justify-between gap-1">
-                              <span className="text-[10px] font-bold text-slate-700 leading-snug truncate" title={step}>{step}</span>
+                            <div className="flex items-center justify-between gap-1">
+                              <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wider ${headerColor}`}>
+                                {headerLabel}
+                              </span>
                               <button
                                 onClick={() => removeStep(intent, idx)}
                                 className="text-[9px] text-slate-400 hover:text-red-500 font-bold cursor-pointer shrink-0"
@@ -294,26 +353,71 @@ export default function PipelinePage() {
                                 ✕
                               </button>
                             </div>
+
+                            {/* Label */}
+                            <span className="text-[10px] font-bold text-slate-700 leading-snug truncate" title={label}>
+                              {label}
+                            </span>
                             
-                            {/* Campaign Selector & Trigger */}
-                            <select 
-                              id={selectId} 
-                              className="w-full text-[10px] bg-slate-50 border border-slate-200 rounded-lg outline-none p-1.5 focus:border-blue-400"
-                            >
-                              <option value="">-- Select Campaign --</option>
-                              {campaigns.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                            </select>
-                            <button 
-                              onClick={() => {
-                                const selectEl = document.getElementById(selectId);
-                                const campaignId = selectEl?.value;
-                                if (!campaignId) return alert('Select a campaign first');
-                                executeStepCampaign(intent, campaignId);
-                              }}
-                              className="w-full text-[9px] bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 rounded-lg shadow-sm transition-colors"
-                            >
-                              Run Outreach ({count})
-                            </button>
+                            {/* Specific fields based on type */}
+                            {type === 'campaign' && (
+                              <div className="flex flex-col gap-1.5 mt-0.5">
+                                {isObject && step.campaignId ? (
+                                  <>
+                                    <div className="text-[9px] font-semibold text-slate-500 bg-slate-50 border border-slate-150 p-1.5 rounded truncate">
+                                      Campaign: {campaigns.find(c => c._id === step.campaignId)?.name || 'Linked Campaign'}
+                                    </div>
+                                    <button 
+                                      onClick={() => executeStepCampaign(intent, step.campaignId)}
+                                      className="w-full text-[9px] bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 rounded-lg shadow-sm transition-colors"
+                                    >
+                                      Run Outreach ({count})
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <select 
+                                      id={`campaign-select-${intent}-${idx}`} 
+                                      className="w-full text-[10px] bg-slate-50 border border-slate-200 rounded-lg outline-none p-1.5 focus:border-blue-400"
+                                    >
+                                      <option value="">-- Select Campaign --</option>
+                                      {campaigns.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                                    </select>
+                                    <button 
+                                      onClick={() => {
+                                        const selectEl = document.getElementById(`campaign-select-${intent}-${idx}`);
+                                        const campaignId = selectEl?.value;
+                                        if (!campaignId) return alert('Select a campaign first');
+                                        executeStepCampaign(intent, campaignId);
+                                      }}
+                                      className="w-full text-[9px] bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 rounded-lg shadow-sm transition-colors"
+                                    >
+                                      Run Outreach ({count})
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
+
+                            {type === 'move_stage' && isObject && step.targetStage && (
+                              <div className="flex flex-col gap-1.5 mt-0.5">
+                                <div className="text-[9px] font-semibold text-slate-500 bg-slate-50 border border-slate-150 p-1.5 rounded truncate">
+                                  Stage: {STAGE_CONFIG[step.targetStage]?.label || step.targetStage}
+                                </div>
+                                <button 
+                                  onClick={() => moveAllStageContacts(intent, step.targetStage)}
+                                  className="w-full text-[9px] bg-amber-600 hover:bg-amber-700 text-white font-bold py-1.5 rounded-lg shadow-sm transition-colors"
+                                >
+                                  Move Prospects ({count})
+                                </button>
+                              </div>
+                            )}
+
+                            {type === 'wait' && isObject && (
+                              <div className="text-[9px] font-bold text-slate-500 bg-slate-50 border border-slate-150 p-1.5 rounded text-center">
+                                Delay: {step.delayDays} day(s)
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -495,6 +599,106 @@ export default function PipelinePage() {
             <div className="p-6 bg-slate-50 flex justify-end gap-3 border-t border-slate-100">
               <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-sm font-bold text-slate-600 hover:text-slate-900">Cancel</button>
               <button type="submit" className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm">Create Pipeline</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ── Step Builder Modal ─────────────────────────────────────────────────── */}
+      {stepModalConfig && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <form onSubmit={handleSaveStep} className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95">
+            <div className="p-6 border-b border-slate-100">
+              <h2 className="text-lg font-bold text-slate-950">Add Follow-up Step</h2>
+              <p className="text-xs text-slate-500 mt-1">Configure action node under "{STAGE_CONFIG[stepModalConfig.stageId]?.label || stepModalConfig.stageId}"</p>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 font-semibold">Step Type</label>
+                <select
+                  value={stepType}
+                  onChange={e => {
+                    setStepType(e.target.value);
+                    if (!stepLabel) {
+                      if (e.target.value === 'campaign') setStepLabel('LinkedIn Campaign');
+                      if (e.target.value === 'move_stage') setStepLabel('Move to Stage');
+                      if (e.target.value === 'wait') setStepLabel('Wait Delay');
+                      if (e.target.value === 'task') setStepLabel('Manual Action');
+                    }
+                  }}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 outline-none text-xs font-semibold text-slate-700 cursor-pointer"
+                >
+                  <option value="campaign">✉️ LinkedIn Campaign Outreach</option>
+                  <option value="move_stage">🔄 Move Stage Automatically</option>
+                  <option value="wait">⏱️ Wait Delay Time</option>
+                  <option value="task">📋 Manual Action/Task Reminder</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 font-semibold">Step Label / Name</label>
+                <input
+                  type="text"
+                  required
+                  value={stepLabel}
+                  onChange={e => setStepLabel(e.target.value)}
+                  placeholder="e.g. Follow Up Message Sequence"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 outline-none text-xs font-medium"
+                />
+              </div>
+
+              {/* Conditional Inputs */}
+              {stepType === 'campaign' && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 font-semibold">Link Outreach Campaign</label>
+                  <select
+                    required
+                    value={stepCampaignId}
+                    onChange={e => setStepCampaignId(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 outline-none text-xs font-semibold text-slate-700 cursor-pointer"
+                  >
+                    <option value="">-- Select Campaign --</option>
+                    {campaigns.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                  </select>
+                </div>
+              )}
+
+              {stepType === 'move_stage' && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 font-semibold">Target Pipeline Stage</label>
+                  <select
+                    required
+                    value={stepTargetStage}
+                    onChange={e => setStepTargetStage(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 outline-none text-xs font-semibold text-slate-700 cursor-pointer"
+                  >
+                    <option value="">-- Select Target Stage --</option>
+                    {Object.entries(STAGE_CONFIG).map(([key, val]) => (
+                      <option key={key} value={key}>{val.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {stepType === 'wait' && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 font-semibold">Wait Time (in Days)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={stepDelayDays}
+                    onChange={e => setStepDelayDays(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 outline-none text-xs font-medium"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 bg-slate-50 flex justify-end gap-3 border-t border-slate-100">
+              <button type="button" onClick={() => setStepModalConfig(null)} className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900">Cancel</button>
+              <button type="submit" className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm">Save Step</button>
             </div>
           </form>
         </div>
