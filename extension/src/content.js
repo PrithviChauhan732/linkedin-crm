@@ -738,18 +738,21 @@ function getConnectionStatus() {
   if (dist.includes('1st')) return 'connected';
   
   const buttons = Array.from(document.querySelectorAll('button, a'));
-  const btnTexts = buttons.map(b => b.textContent?.trim()?.toLowerCase());
+  const btnTexts = buttons.map(b => b.textContent?.trim()?.toLowerCase() || '');
   const ariaLabels = buttons.map(b => b.getAttribute('aria-label')?.toLowerCase() || '');
   
-  const hasPending = btnTexts.includes('pending') || ariaLabels.some(a => a.includes('pending'));
+  const hasPending = btnTexts.some(t => t.includes('pending') || t.includes('invitation') || t.includes('invite sent')) || 
+                     ariaLabels.some(a => a.includes('pending') || a.includes('invitation') || a.includes('invite sent'));
   if (hasPending) return 'connection_sent';
 
-  if (dist.includes('2nd') || dist.includes('3rd') || btnTexts.includes('connect') || ariaLabels.some(a => a.includes('connect'))) {
+  const hasConnect = btnTexts.some(t => t.includes('connect')) || ariaLabels.some(a => a.includes('connect'));
+  if (dist.includes('2nd') || dist.includes('3rd') || hasConnect) {
     return 'new';
   }
 
   // If "Message" is primary and no "Connect", likely connected
-  if (btnTexts.includes('message') || ariaLabels.some(a => a.includes('message'))) {
+  const hasMessage = btnTexts.some(t => t.includes('message')) || ariaLabels.some(a => a.includes('message'));
+  if (hasMessage) {
     return 'connected';
   }
 
@@ -811,8 +814,21 @@ function enrichFromDOM(contact, attempt = 0) {
   if (currentUsername !== contact.username) return;
 
   const name     = findProfileName();
-  const headline = (document.querySelector('.text-body-medium.break-words') || document.querySelector('[data-anonymize="person-tagline"]'))?.textContent?.trim() || '';
-  const company  = (document.querySelector('.pv-text-details__right-panel .text-body-medium') || document.querySelector('[aria-label*="Current company"]'))?.textContent?.trim() || '';
+  const headline = (
+    document.querySelector('.text-body-medium.break-words') ||
+    document.querySelector('[data-anonymize="person-tagline"]') ||
+    document.querySelector('.pv-text-details__left-panel .text-body-medium') ||
+    document.querySelector('.text-body-medium')
+  )?.textContent?.trim() || '';
+
+  const company = (
+    document.querySelector('.pv-text-details__right-panel .text-body-medium') ||
+    document.querySelector('[aria-label*="Current company"]') ||
+    document.querySelector('.pv-text-details__right-panel button span') ||
+    document.querySelector('.pv-text-details__right-panel .inline-show-more-text') ||
+    document.querySelector('.pv-text-details__right-panel')
+  )?.textContent?.trim() || '';
+
   const location = (document.querySelector('.pv-text-details__left-panel .text-body-small.inline') || document.querySelector('[data-anonymize="location"]'))?.textContent?.trim() || '';
   const connectionStatus = getConnectionStatus();
 
@@ -924,6 +940,12 @@ async function injectProfileBadge(contact) {
       <input type="text" id="lcrm-badge-name-input" value="${escapeHtml(contact.name)}" style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px;color:#f8fafc;font-size:12px;font-weight:600;outline:none;flex:1;min-width:0;" />
       <button id="lcrm-badge-close" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:16px;">✕</button>
     </div>
+
+    <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px;display:block;">Role</label>
+    <input type="text" id="lcrm-badge-headline-input" value="${escapeHtml(contact.headline || '')}" placeholder="e.g. Sales Leader" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px;color:#cbd5e1;font-size:12px;margin-bottom:12px;outline:none;" />
+
+    <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px;display:block;">Company</label>
+    <input type="text" id="lcrm-badge-company-input" value="${escapeHtml(contact.company || '')}" placeholder="e.g. Acme Corp" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px;color:#cbd5e1;font-size:12px;margin-bottom:12px;outline:none;" />
     
     <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px;display:block;">Pipeline</label>
     <select id="lcrm-badge-pipeline" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px;color:#e2e8f0;font-size:12px;margin-bottom:12px;outline:none;">
@@ -959,6 +981,8 @@ async function injectProfileBadge(contact) {
     const statusEl = badge.querySelector('#lcrm-badge-status');
     const btn = badge.querySelector('#lcrm-badge-save');
     const customName = badge.querySelector('#lcrm-badge-name-input')?.value?.trim() || contact.name;
+    const customHeadline = badge.querySelector('#lcrm-badge-headline-input')?.value?.trim() || contact.headline;
+    const customCompany = badge.querySelector('#lcrm-badge-company-input')?.value?.trim() || contact.company;
     
     btn.disabled = true;
     btn.textContent = 'Saving...';
@@ -967,6 +991,8 @@ async function injectProfileBadge(contact) {
     const dataToSend = { 
       ...currentProfileContact, 
       name: customName, 
+      headline: customHeadline,
+      company: customCompany,
       status: currentProfileContact.connectionStatus || 'new',
       pipelineId: pipelineId || null
     };
