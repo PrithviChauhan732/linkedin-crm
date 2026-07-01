@@ -91,7 +91,7 @@ router.post('/sync-connections', async (req, res) => {
 
 // POST /api/contacts/upsert — called by extension when a profile is viewed
 router.post('/upsert', async (req, res) => {
-  const { profileUrl, name, headline, company, username, email, phone, location, website, mutualConnection, recentPostTopic } = req.body;
+  const { profileUrl, name, headline, company, username, email, phone, location, website, mutualConnection, recentPostTopic, status, connectionStatus } = req.body;
 
   // Normalize name
   const normalizedName = (name && name !== username)
@@ -108,6 +108,11 @@ router.post('/upsert', async (req, res) => {
   if (website) updateData.website = website;
   if (mutualConnection) updateData.mutualConnection = mutualConnection;
   if (recentPostTopic) updateData.recentPostTopic = recentPostTopic;
+  
+  const incomingStatus = status || connectionStatus;
+  if (incomingStatus) {
+    updateData.status = incomingStatus;
+  }
 
   const contact = await Contact.findOneAndUpdate(
     { profileUrl, user: req.user.id },

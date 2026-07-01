@@ -75,7 +75,7 @@ function onPageChange() {
     setTimeout(setupCompanyPage, 1200);
   } else if (path.startsWith('/in/')) {
     setupProfilePage();
-  } else if (path === '/mynetwork/invite-connect/connections/') {
+  } else if (path.replace(/\/$/, '') === '/mynetwork/invite-connect/connections') {
     setTimeout(scrapeConnectionsPage, 2000);
   }
 
