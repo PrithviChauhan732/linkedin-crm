@@ -22,6 +22,11 @@ I have successfully implemented all requested features to elevate your CRM pipel
 - **Unified Visual Pipeline:** The complex Kanban board and ML Routing map tabs have been entirely stripped out. In their place is a gorgeous, unified, single-screen **Visual Flowchart Grid**.
 - **Interactive ML Playground:** The central `ML Intent Engine` node is now fully interactive! Clicking it slides out a dark-mode testing playground where you can paste mock replies and instantly test the sub-10ms Python ML model (seeing its confidence score, intent class, and tag).
 - **Exact ML Output Alignment:** The final stages of the flowchart exactly mirror the 7 classes emitted by the ML model (`Interested`, `Form Request`, `Not Hiring`, `Not Interested`, `Referral`, `Question`, `OOO`). Beneath each node, there is a fully functional **"+ Add Step"** visual follow-up step builder! Click it to create a custom follow-up action chain that persists in the database and renders visually as connected nodes underneath.
+- **Typed Follow-up Step Builder:** Clicking "+ Add Step" now opens a modal dialog to let you configure the step type:
+  - **Campaign Outreach:** Auto-links a sequence (runs automatically without selecting it).
+  - **Move Stage:** Batch-moves all leads sitting in that outcome stage to another stage (e.g. *Closed Won*).
+  - **Wait Delay:** Visually displays a wait-time delay node (e.g. *Delay: 2 days*).
+  - **Manual Task:** Renders a visual reminder check card.
 - **Embedded Interactions & Pipeline Switching:** Switch between unlimited custom pipelines instantly using the horizontal active tab bar at the top. You can create a new pipeline via the "+ New Pipeline" tab. Every pipeline isolates its own set of contacts. 
 - **Pipeline Mover:** Clicking any outcome node (e.g., "Interested") opens a right-hand sidebar where you can edit contacts and move them directly to other pipelines or stages.
 - **Campaign Triggering:** The "Trigger Campaign" interface is visually baked directly into the connection flow below the `Connected` node. Select a campaign, hit Run, and watch the prospects visually flow down into the `Outreach Sent` node.
