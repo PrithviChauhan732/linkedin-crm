@@ -24,17 +24,25 @@ router.get('/', async (req, res) => {
   ];
   
   if (pipelineId) {
+    const mongoose = require('mongoose');
+    let parsedPipelineId;
+    try {
+      parsedPipelineId = new mongoose.Types.ObjectId(pipelineId);
+    } catch (e) {
+      parsedPipelineId = pipelineId;
+    }
+
     if (isDefault === 'true') {
       filter.$and = filter.$and || [];
       filter.$and.push({
         $or: [
-          { pipelineId: pipelineId },
+          { pipelineId: parsedPipelineId },
           { pipelineId: { $exists: false } },
           { pipelineId: null }
         ]
       });
     } else {
-      filter.pipelineId = pipelineId;
+      filter.pipelineId = parsedPipelineId;
     }
   }
 
