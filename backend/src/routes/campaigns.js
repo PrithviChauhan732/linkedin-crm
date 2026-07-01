@@ -14,16 +14,24 @@ router.get('/', async (req, res) => {
 
 // POST /api/campaigns
 router.post('/', async (req, res) => {
-  const { name, groupId, templateId } = req.body;
-  const contactCount = await Contact.countDocuments({ groups: groupId, user: req.user.id });
+  try {
+    const { name, groupId, templateId } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: 'Campaign name is required' });
+    }
+    const contactCount = await Contact.countDocuments({ groups: groupId, user: req.user.id });
 
-  const campaign = await Campaign.create({
-    name, group: groupId, template: templateId,
-    'stats.total': contactCount,
-    user: req.user.id,
-  });
+    const campaign = await Campaign.create({
+      name, group: groupId, template: templateId,
+      'stats.total': contactCount,
+      user: req.user.id,
+    });
 
-  res.status(201).json({ campaign });
+    res.status(201).json({ campaign });
+  } catch (err) {
+    console.error('[Campaign Create Error]', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // POST /api/campaigns/:id/build-queue — returns the send queue for the extension
