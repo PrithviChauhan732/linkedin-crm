@@ -60,8 +60,8 @@ router.post('/sync-connections', async (req, res) => {
       }
     }
 
-    // 2. Query all contacts currently in 'connection_sent' stage (O(1) DB roundtrip)
-    const pendingContacts = await Contact.find({ user: req.user.id, status: 'connection_sent' });
+    // 2. Query all contacts currently in 'new' or 'connection_sent' stage (O(1) DB roundtrip)
+    const pendingContacts = await Contact.find({ user: req.user.id, status: { $in: ['new', 'connection_sent'] } });
 
     // 3. Reconcile in O(N)
     const newlyConnectedIds = [];
