@@ -149,15 +149,15 @@ async function setupCompanyPage() {
   // Fetch groups and campaigns from backend
   let groups = [], campaigns = [];
   try {
-    const { token } = await new Promise(r => chrome.storage.local.get('token', r));
-    if (token) {
-      const [gRes, cRes] = await Promise.all([
-        fetch(`${API_BASE}/groups`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE}/campaigns`, { headers: { Authorization: `Bearer ${token}` } }),
-      ]);
-      groups    = (await gRes.json()).groups    || [];
-      campaigns = (await cRes.json()).campaigns || [];
-    }
+    await new Promise(resolve => {
+      safeSend({ type: 'FETCH_API', path: '/groups' }, gRes => {
+        groups = gRes?.data?.groups || [];
+        safeSend({ type: 'FETCH_API', path: '/campaigns' }, cRes => {
+          campaigns = cRes?.data?.campaigns || [];
+          resolve();
+        });
+      });
+    });
   } catch {}
 
   injectCompanyWidget(company, groups, campaigns);
@@ -338,15 +338,15 @@ async function setupPeoplePage() {
   let campaigns = [];
   let groups    = [];
   try {
-    const { token } = await new Promise(r => chrome.storage.local.get('token', r));
-    if (token) {
-      const [cRes, gRes] = await Promise.all([
-        fetch(`${API_BASE}/campaigns`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE}/groups`,    { headers: { Authorization: `Bearer ${token}` } }),
-      ]);
-      campaigns = (await cRes.json()).campaigns || [];
-      groups    = (await gRes.json()).groups    || [];
-    }
+    await new Promise(resolve => {
+      safeSend({ type: 'FETCH_API', path: '/campaigns' }, cRes => {
+        campaigns = cRes?.data?.campaigns || [];
+        safeSend({ type: 'FETCH_API', path: '/groups' }, gRes => {
+          groups = gRes?.data?.groups || [];
+          resolve();
+        });
+      });
+    });
   } catch {}
 
   injectPeoplePanel(people, companyName, campaigns, groups);
@@ -883,17 +883,18 @@ async function injectProfileBadge(contact) {
   let groups    = [];
   let pipelines = [];
   try {
-    const { token } = await new Promise(r => chrome.storage.local.get('token', r));
-    if (token) {
-      const [cRes, gRes, pRes] = await Promise.all([
-        fetch(`${API_BASE}/campaigns`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE}/groups`,    { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE}/pipelines`, { headers: { Authorization: `Bearer ${token}` } }),
-      ]);
-      campaigns = (await cRes.json()).campaigns || [];
-      groups    = (await gRes.json()).groups    || [];
-      pipelines = (await pRes.json()).pipelines || [];
-    }
+    await new Promise(resolve => {
+      safeSend({ type: 'FETCH_API', path: '/campaigns' }, cRes => {
+        campaigns = cRes?.data?.campaigns || [];
+        safeSend({ type: 'FETCH_API', path: '/groups' }, gRes => {
+          groups = gRes?.data?.groups || [];
+          safeSend({ type: 'FETCH_API', path: '/pipelines' }, pRes => {
+            pipelines = pRes?.data?.pipelines || [];
+            resolve();
+          });
+        });
+      });
+    });
   } catch (err) {
     console.error('[WarmDM] Error loading options:', err);
   }

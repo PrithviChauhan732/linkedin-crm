@@ -80,6 +80,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         .catch(e => sendResponse({ error: e.message }));
       return true;
 
+    case 'FETCH_API':
+      syncToBackend(msg.path)
+        .then(res => sendResponse({ ok: true, data: res }))
+        .catch(e => sendResponse({ error: e.message }));
+      return true;
+
     case 'TRIGGER_CONNECTIONS_SYNC':
       // Open connections page in background tab, scrape, and close
       chrome.tabs.create({ url: 'https://www.linkedin.com/mynetwork/invite-connect/connections/', active: false }, tab => {
